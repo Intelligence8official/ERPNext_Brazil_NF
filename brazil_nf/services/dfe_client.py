@@ -302,20 +302,24 @@ def _fetch_nfse_documents(endpoint, cert_path, key_path, last_nsu, company_setti
 
     created = 0
     skipped = 0
+    events_processed = 0
 
     for doc_data in documents:
         try:
             nsu = doc_data.get("NSU")
             chave = doc_data.get("ChaveAcesso")
             tipo_doc = doc_data.get("TipoDocumento")
+            tipo_evento = doc_data.get("TipoEvento")
             xml_b64 = doc_data.get("ArquivoXml")
 
             # Update NSU range
             if nsu:
                 log.update_nsu_range(nsu)
 
-            # Skip events for now
+            # Handle events (cancellation, etc.)
             if tipo_doc == "EVENTO":
+                _process_evento(chave, tipo_evento, xml_b64)
+                events_processed += 1
                 continue
 
             # Decode XML
@@ -349,6 +353,7 @@ def _fetch_nfse_documents(endpoint, cert_path, key_path, last_nsu, company_setti
         "fetched": len(documents),
         "created": created,
         "skipped": skipped,
+        "events": events_processed,
         "sefaz_status": status,
         "nsu_used": last_nsu
     }
@@ -400,6 +405,73 @@ def _decode_xml(xml_b64):
         xml_bytes = compressed
 
     return xml_bytes.decode("utf-8")
+
+
+def _process_evento(chave_acesso, tipo_evento, xml_b64):
+    """
+    Process an event (cancellation, correction, etc.) for an existing NF.
+
+    Args:
+        chave_acesso: Access key of the related NF
+        tipo_evento: Event type (e.g., "Cancelamento", "101101")
+        xml_b64: Base64-encoded event XML
+    """
+    if not chave_acesso:
+        return
+
+    # Find the related Nota Fiscal
+    nf_name = frappe.db.get_value("Nota Fiscal", {"chave_de_acesso": chave_acesso}, "name")
+
+    if not nf_name:
+        frappe.logger().warning(f"Event received for unknown NF: {chave_acesso}")
+        return
+
+    # Decode event XML for details
+    xml_content = _decode_xml(xml_b64) if xml_b64 else None
+
+    # Determine event type and process accordingly
+    tipo_evento_lower = (tipo_evento or "").lower()
+
+    # Cancellation event codes/names
+    cancellation_indicators = [
+        "cancelamento", "cancel", "101101", "101", "e101101"
+    ]
+
+    is_cancellation = any(ind in tipo_evento_lower for ind in cancellation_indicators)
+
+    if is_cancellation:
+        # Mark the NF as cancelled
+        frappe.db.set_value(
+            "Nota Fiscal",
+            nf_name,
+            {
+                "cancelada": 1,
+                "status_sefaz": "Cancelada",
+                "processing_status": "Cancelled",
+                "data_cancelamento": now_datetime()
+            },
+            update_modified=True
+        )
+
+        frappe.logger().info(f"NF {nf_name} marked as cancelled (event: {tipo_evento})")
+
+        # Store event XML if available
+        if xml_content:
+            # Add to eventos child table or store separately
+            try:
+                nf_doc = frappe.get_doc("Nota Fiscal", nf_name)
+                nf_doc.append("eventos", {
+                    "tipo_evento": "Cancelamento",
+                    "codigo_evento": tipo_evento,
+                    "data_evento": now_datetime(),
+                    "descricao": "Cancelamento de NFS-e",
+                    "xml_evento": xml_content
+                })
+                nf_doc.save(ignore_permissions=True)
+            except Exception as e:
+                frappe.logger().warning(f"Could not add event to NF {nf_name}: {e}")
+    else:
+        frappe.logger().info(f"Event {tipo_evento} received for NF {nf_name} (not processed)")
 
 
 def _create_nota_fiscal_from_xml(xml_content, document_type, company_settings, chave=None):

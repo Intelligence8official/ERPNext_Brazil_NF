@@ -75,7 +75,11 @@ frappe.ui.form.on('NF Company Settings', {
                                                 msg += `&nbsp;&nbsp;Wait ${result.wait_minutes} minutes before next fetch<br>`;
                                             }
                                         } else {
-                                            msg += `&nbsp;&nbsp;Fetched: ${result.fetched || 0}, Created: ${result.created || 0}<br>`;
+                                            msg += `&nbsp;&nbsp;Fetched: ${result.fetched || 0}, Created: ${result.created || 0}`;
+                                            if (result.events) {
+                                                msg += `, Events: ${result.events}`;
+                                            }
+                                            msg += '<br>';
                                         }
 
                                         if (result.sefaz_status) {

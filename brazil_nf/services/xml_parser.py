@@ -432,19 +432,28 @@ class NFXMLParser:
     def _parse_currency(self, value_str):
         """
         Parse currency string to float.
+
+        Handles both formats:
+        - XML standard: 16800.00 (dot as decimal separator)
+        - Brazilian format: 16.800,00 (dot as thousands, comma as decimal)
         """
         if not value_str:
             return 0.0
 
         try:
-            # Remove thousands separator and convert decimal separator
-            clean = value_str.replace(".", "").replace(",", ".")
-            return float(clean)
-        except ValueError:
-            try:
+            value_str = value_str.strip()
+
+            # Check if it's Brazilian format (has comma as decimal separator)
+            if "," in value_str:
+                # Brazilian format: 16.800,00 or 16800,00
+                clean = value_str.replace(".", "").replace(",", ".")
+                return float(clean)
+            else:
+                # XML/International format: 16800.00 or 16800
+                # Don't remove dots - they are decimal separators
                 return float(value_str)
-            except ValueError:
-                return 0.0
+        except ValueError:
+            return 0.0
 
     def _parse_float(self, value_str):
         """

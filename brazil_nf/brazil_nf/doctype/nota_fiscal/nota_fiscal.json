@@ -614,7 +614,7 @@
    "fieldname": "processing_status",
    "fieldtype": "Select",
    "label": "Processing Status",
-   "options": "New\nParsed\nSupplier Processing\nItem Processing\nPO Matching\nInvoice Creation\nCompleted\nError",
+   "options": "New\nParsed\nSupplier Processing\nItem Processing\nPO Matching\nInvoice Creation\nCompleted\nCancelled\nError",
    "default": "New",
    "in_list_view": 1,
    "in_standard_filter": 1
