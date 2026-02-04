@@ -128,7 +128,7 @@ class NFCompanySettings(Document):
         return result
 
     def update_last_nsu(self, document_type, nsu):
-        """Update the last NSU for a document type."""
+        """Update the last NSU for a document type using direct DB update to avoid conflicts."""
         field_map = {
             "NF-e": "last_nsu_nfe",
             "CT-e": "last_nsu_cte",
@@ -137,9 +137,19 @@ class NFCompanySettings(Document):
 
         field = field_map.get(document_type)
         if field:
+            # Use direct DB update to avoid document modification conflicts
+            frappe.db.set_value(
+                "NF Company Settings",
+                self.name,
+                {
+                    field: str(nsu),
+                    "last_sync": now_datetime()
+                },
+                update_modified=False
+            )
+            # Update local attributes for consistency
             setattr(self, field, str(nsu))
             self.last_sync = now_datetime()
-            self.save(ignore_permissions=True)
 
     def get_last_nsu(self, document_type):
         """Get the last NSU for a document type."""

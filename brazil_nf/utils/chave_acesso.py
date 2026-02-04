@@ -1,10 +1,18 @@
 """
 Chave de Acesso (Access Key) parsing and validation utilities.
 
-The chave de acesso is a 44-digit unique identifier for NF-e, CT-e, and NFS-e documents.
-
+NF-e/CT-e: 44 digits
 Structure: UF(2) + AAMM(4) + CNPJ(14) + Modelo(2) + Serie(3) + Numero(9) + TipoEmissao(1) + Codigo(8) + DV(1)
+
+NFS-e Nacional: 50 digits
+Structure: Diferente, definido pelo padrão nacional de NFS-e
 """
+
+# Valid lengths for different document types
+VALID_CHAVE_LENGTHS = {
+    44: ["NF-e", "CT-e", "NFC-e", "MDF-e"],  # Federal documents
+    50: ["NFS-e"],  # NFS-e Nacional
+}
 
 
 def clean_chave(chave):
@@ -50,9 +58,51 @@ def parse_chave_acesso(chave):
     }
 
 
-def validate_chave_acesso(chave):
+def validate_chave_acesso(chave, document_type=None):
     """
-    Validate access key check digit using module 11.
+    Validate access key format and check digit.
+
+    Args:
+        chave: Access key (44 digits for NF-e/CT-e, 50 digits for NFS-e)
+        document_type: Optional document type to enforce specific length
+
+    Returns:
+        bool: True if valid
+    """
+    chave = clean_chave(chave)
+
+    if not chave:
+        return False
+
+    if not chave.isdigit():
+        return False
+
+    # Accept valid lengths based on document type
+    valid_lengths = [44, 50]  # NF-e/CT-e = 44, NFS-e = 50
+
+    if document_type:
+        if document_type == "NFS-e":
+            valid_lengths = [50]
+        elif document_type in ["NF-e", "CT-e", "NFC-e"]:
+            valid_lengths = [44]
+
+    if len(chave) not in valid_lengths:
+        return False
+
+    # For 44-digit keys (NF-e, CT-e), validate check digit
+    if len(chave) == 44:
+        return _validate_nfe_check_digit(chave)
+
+    # For 50-digit keys (NFS-e), just validate format (check digit algorithm may differ)
+    if len(chave) == 50:
+        return True  # NFS-e has different validation, accept if format is correct
+
+    return False
+
+
+def _validate_nfe_check_digit(chave):
+    """
+    Validate NF-e/CT-e check digit using module 11.
 
     Args:
         chave: 44-digit access key
@@ -60,14 +110,6 @@ def validate_chave_acesso(chave):
     Returns:
         bool: True if valid
     """
-    chave = clean_chave(chave)
-
-    if len(chave) != 44:
-        return False
-
-    if not chave.isdigit():
-        return False
-
     # Calculate check digit (modulo 11)
     # Multiply digits 1-43 by weights 2-9 (repeating), right to left
     weights = [2, 3, 4, 5, 6, 7, 8, 9]

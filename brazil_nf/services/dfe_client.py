@@ -61,7 +61,7 @@ def _check_rate_limit(company_settings, document_type):
 
 def _update_rate_limit(company_settings, document_type, had_documents):
     """
-    Update rate limit tracking after a fetch.
+    Update rate limit tracking after a fetch using direct DB update.
 
     If no documents were returned, record the time so we know to wait 1 hour.
     If documents were returned, clear the empty response time.
@@ -78,14 +78,25 @@ def _update_rate_limit(company_settings, document_type, had_documents):
 
     if had_documents:
         # Clear the empty response time - we got documents
-        setattr(company_settings, field, None)
+        new_value = None
     else:
         # Record that we got an empty response - must wait 1 hour
-        setattr(company_settings, field, now_datetime())
+        new_value = now_datetime()
         frappe.logger().info(
             f"SEFAZ rate limit: No documents for {document_type}. "
             f"Must wait {SEFAZ_WAIT_HOURS} hour(s) before next fetch."
         )
+
+    # Use direct DB update to avoid document modification conflicts
+    frappe.db.set_value(
+        "NF Company Settings",
+        company_settings.name,
+        field,
+        new_value,
+        update_modified=False
+    )
+    # Update local attribute for consistency
+    setattr(company_settings, field, new_value)
 
 
 # SEFAZ DF-e Distribution endpoints
@@ -186,10 +197,9 @@ def fetch_documents_for_company(company_settings_name, document_type=None):
             result = _fetch_documents(company_settings, doc_type, settings, log)
             results[doc_type] = result
 
-            # Update rate limit tracking
+            # Update rate limit tracking (uses direct DB update)
             had_documents = result.get("fetched", 0) > 0
             _update_rate_limit(company_settings, doc_type, had_documents)
-            company_settings.save(ignore_permissions=True)
 
             log.mark_completed("Success" if result["created"] > 0 else "Partial")
         except Exception as e:

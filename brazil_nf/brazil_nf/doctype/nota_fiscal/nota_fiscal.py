@@ -26,11 +26,16 @@ class NotaFiscal(Document):
         if not self.chave_de_acesso:
             return
 
-        from brazil_nf.utils.chave_acesso import validate_chave_acesso
+        from brazil_nf.utils.chave_acesso import validate_chave_acesso, clean_chave
 
-        if not validate_chave_acesso(self.chave_de_acesso):
+        # Pass document type for proper validation (NFS-e = 50 digits, NF-e/CT-e = 44 digits)
+        if not validate_chave_acesso(self.chave_de_acesso, self.document_type):
+            cleaned = clean_chave(self.chave_de_acesso)
+            expected_len = "50" if self.document_type == "NFS-e" else "44"
             frappe.throw(
-                _("Invalid Chave de Acesso. Please check the 44-digit access key."),
+                _("Invalid Chave de Acesso. Expected {0} digits, got {1}.").format(
+                    expected_len, len(cleaned)
+                ),
                 title=_("Validation Error")
             )
 
