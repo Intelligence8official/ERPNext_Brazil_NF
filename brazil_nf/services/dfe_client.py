@@ -99,8 +99,8 @@ SEFAZ_ENDPOINTS = {
         "homologation": "https://hom.cte.fazenda.gov.br/CTeDistribuicaoDFe/CTeDistribuicaoDFe.asmx"
     },
     "nfse": {
-        "production": "https://adn.nfse.gov.br/contribuintes/DFe/0",
-        "homologation": "https://adn.nfse.gov.br/contribuintes/DFe/0"  # Same for now
+        "production": "https://adn.nfse.gov.br/contribuintes/DFe",
+        "homologation": "https://adn.nfse.gov.br/contribuintes/DFe"
     }
 }
 
