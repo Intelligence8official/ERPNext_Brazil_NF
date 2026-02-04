@@ -58,7 +58,17 @@ frappe.ui.form.on('NF Company Settings', {
                                 if (typeof r.message === 'object') {
                                     for (let key in r.message) {
                                         let result = r.message[key];
-                                        msg += `<b>${key}:</b> Fetched: ${result.fetched || 0}, Created: ${result.created || 0}<br>`;
+                                        msg += `<b>${key}:</b><br>`;
+                                        msg += `&nbsp;&nbsp;Fetched: ${result.fetched || 0}, Created: ${result.created || 0}<br>`;
+                                        if (result.sefaz_status) {
+                                            msg += `&nbsp;&nbsp;SEFAZ Status: ${result.sefaz_status}<br>`;
+                                        }
+                                        if (result.nsu_used !== undefined) {
+                                            msg += `&nbsp;&nbsp;NSU Used: ${result.nsu_used}<br>`;
+                                        }
+                                        if (result.message) {
+                                            msg += `&nbsp;&nbsp;Message: ${result.message}<br>`;
+                                        }
                                     }
                                 } else {
                                     msg = JSON.stringify(r.message);

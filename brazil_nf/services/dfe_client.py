@@ -147,14 +147,32 @@ def _fetch_nfse_documents(endpoint, cert_path, key_path, last_nsu, company_setti
     """
     url = f"{endpoint}/{last_nsu}"
 
+    frappe.logger().info(f"NFS-e Fetch: URL={url}, NSU={last_nsu}")
+
     session = requests.Session()
     session.cert = (cert_path, key_path)
 
     response = session.get(url, timeout=60)
+
+    frappe.logger().info(f"NFS-e Fetch: HTTP Status={response.status_code}")
+    frappe.logger().info(f"NFS-e Fetch: Response={response.text[:1000] if response.text else 'empty'}")
+
     response.raise_for_status()
 
     data = response.json()
+
+    # Log API response status
+    status = data.get("StatusProcessamento", "unknown")
+    erros = data.get("Erros", [])
+    alertas = data.get("Alertas", [])
+    frappe.logger().info(f"NFS-e Fetch: StatusProcessamento={status}")
+    if erros:
+        frappe.logger().warning(f"NFS-e Fetch: Erros={erros}")
+    if alertas:
+        frappe.logger().info(f"NFS-e Fetch: Alertas={alertas}")
+
     documents = data.get("LoteDFe", [])
+    frappe.logger().info(f"NFS-e Fetch: Found {len(documents)} documents in LoteDFe")
 
     created = 0
     skipped = 0
@@ -204,7 +222,9 @@ def _fetch_nfse_documents(endpoint, cert_path, key_path, last_nsu, company_setti
         "status": "success",
         "fetched": len(documents),
         "created": created,
-        "skipped": skipped
+        "skipped": skipped,
+        "sefaz_status": status,
+        "nsu_used": last_nsu
     }
 
 
