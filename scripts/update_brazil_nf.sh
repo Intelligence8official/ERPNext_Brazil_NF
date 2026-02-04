@@ -76,7 +76,7 @@ if [ -n "$(git status --porcelain)" ]; then
     STASHED=true
 fi
 
-git pull origin main
+git pull
 
 if [ "$STASHED" = true ]; then
     echo -e "${YELLOW}      Restaurando mudanças locais...${NC}"
