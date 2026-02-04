@@ -157,3 +157,82 @@ def fetch_for_company(company_settings_name, document_type=None):
     """
     from brazil_nf.services.dfe_client import fetch_documents_for_company
     return fetch_documents_for_company(company_settings_name, document_type)
+
+
+@frappe.whitelist()
+def batch_process(documents):
+    """
+    Process multiple Nota Fiscal documents in batch.
+
+    Args:
+        documents: List of Nota Fiscal document names
+
+    Returns:
+        dict: Processing results summary
+    """
+    import json
+    from brazil_nf.services.processor import NFProcessor
+
+    if isinstance(documents, str):
+        documents = json.loads(documents)
+
+    results = {
+        "processed": 0,
+        "completed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "details": []
+    }
+
+    processor = NFProcessor()
+
+    for doc_name in documents:
+        try:
+            nf_doc = frappe.get_doc("Nota Fiscal", doc_name)
+
+            # Skip cancelled documents
+            if nf_doc.cancelada or nf_doc.processing_status == "Cancelled":
+                results["skipped"] += 1
+                results["details"].append({
+                    "name": doc_name,
+                    "status": "skipped",
+                    "message": _("Document is cancelled")
+                })
+                continue
+
+            # Skip already completed documents
+            if nf_doc.processing_status == "Completed":
+                results["skipped"] += 1
+                results["details"].append({
+                    "name": doc_name,
+                    "status": "skipped",
+                    "message": _("Already completed")
+                })
+                continue
+
+            result = processor.process(nf_doc)
+            results["processed"] += 1
+
+            if result.get("processing_status") == "Completed":
+                results["completed"] += 1
+                results["details"].append({
+                    "name": doc_name,
+                    "status": "completed"
+                })
+            else:
+                results["details"].append({
+                    "name": doc_name,
+                    "status": result.get("processing_status", "Error"),
+                    "message": nf_doc.processing_error if hasattr(nf_doc, "processing_error") else None
+                })
+
+        except Exception as e:
+            results["errors"] += 1
+            results["details"].append({
+                "name": doc_name,
+                "status": "error",
+                "message": str(e)
+            })
+            frappe.log_error(str(e), f"Batch Processing Error: {doc_name}")
+
+    return results

@@ -15,6 +15,11 @@
   "nfe_enabled",
   "cte_enabled",
   "nfse_enabled",
+  "alerts_section",
+  "alert_email",
+  "send_cancellation_alerts",
+  "column_break_alerts",
+  "send_error_alerts",
   "email_section",
   "email_import_enabled",
   "email_account",
@@ -98,6 +103,36 @@
    "label": "Fetch NFS-e",
    "default": "1",
    "description": "Fetch Nota Fiscal de Servico Eletronica"
+  },
+  {
+   "fieldname": "alerts_section",
+   "fieldtype": "Section Break",
+   "label": "Alerts & Notifications"
+  },
+  {
+   "fieldname": "alert_email",
+   "fieldtype": "Data",
+   "label": "Alert Email",
+   "options": "Email",
+   "description": "Email address to receive alerts about cancellations and errors"
+  },
+  {
+   "fieldname": "send_cancellation_alerts",
+   "fieldtype": "Check",
+   "label": "Send Cancellation Alerts",
+   "default": "1",
+   "description": "Send email when a linked document cannot be cancelled automatically"
+  },
+  {
+   "fieldname": "column_break_alerts",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "send_error_alerts",
+   "fieldtype": "Check",
+   "label": "Send Error Alerts",
+   "default": "1",
+   "description": "Send email when processing errors occur"
   },
   {
    "fieldname": "email_section",

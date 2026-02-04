@@ -34,42 +34,44 @@ frappe.listview_settings['Nota Fiscal'] = {
     },
 
     formatters: {
+        // Use simple text for status fields to avoid duplicate indicator pills
         supplier_status: function(value) {
-            const colors = {
-                'Pending': 'gray',
-                'Linked': 'green',
-                'Created': 'blue',
-                'Failed': 'red',
-                'Not Found': 'orange'
+            if (!value) return '';
+            const icons = {
+                'Pending': '⏳',
+                'Linked': '✓',
+                'Created': '✓',
+                'Failed': '✗',
+                'Not Found': '?'
             };
-            const color = colors[value] || 'gray';
-            return `<span class="indicator-pill ${color}">${__(value)}</span>`;
+            return `${icons[value] || ''} ${__(value)}`;
         },
 
         item_creation_status: function(value) {
-            const colors = {
-                'Pending': 'gray',
-                'All Created': 'green',
-                'Partial': 'yellow',
-                'Failed': 'red'
+            if (!value) return '';
+            const icons = {
+                'Pending': '⏳',
+                'All Created': '✓',
+                'Partial': '⚠',
+                'Failed': '✗'
             };
-            const color = colors[value] || 'gray';
-            return `<span class="indicator-pill ${color}">${__(value)}</span>`;
+            return `${icons[value] || ''} ${__(value)}`;
         },
 
         po_status: function(value) {
-            const colors = {
-                'Pending': 'gray',
-                'Linked': 'green',
-                'Partial Match': 'yellow',
-                'Not Found': 'orange',
-                'Not Applicable': 'gray'
+            if (!value) return '';
+            const icons = {
+                'Pending': '⏳',
+                'Linked': '✓',
+                'Partial Match': '⚠',
+                'Not Found': '?',
+                'Not Applicable': '-'
             };
-            const color = colors[value] || 'gray';
-            return `<span class="indicator-pill ${color}">${__(value)}</span>`;
+            return `${icons[value] || ''} ${__(value)}`;
         },
 
         document_type: function(value) {
+            // Keep indicator pill only for document type as it's a key identifier
             const colors = {
                 'NF-e': 'blue',
                 'CT-e': 'purple',

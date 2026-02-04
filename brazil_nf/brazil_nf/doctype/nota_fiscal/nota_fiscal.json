@@ -10,6 +10,7 @@
   "naming_series",
   "document_type",
   "chave_de_acesso",
+  "nsu",
   "numero",
   "serie",
   "column_break_id1",
@@ -158,6 +159,13 @@
    "unique": 1,
    "in_list_view": 1,
    "description": "44-digit access key"
+  },
+  {
+   "fieldname": "nsu",
+   "fieldtype": "Data",
+   "label": "NSU",
+   "read_only": 1,
+   "description": "Numero Sequencial Unico from SEFAZ"
   },
   {
    "fieldname": "numero",

@@ -310,6 +310,9 @@ def _fetch_nfse_documents(endpoint, cert_path, key_path, last_nsu, company_setti
     skipped = 0
     events_processed = 0
 
+    # Track NSU range for batch update at end
+    nsu_values = []
+
     for doc_data in documents:
         try:
             nsu = doc_data.get("NSU")
@@ -318,9 +321,9 @@ def _fetch_nfse_documents(endpoint, cert_path, key_path, last_nsu, company_setti
             tipo_evento = doc_data.get("TipoEvento")
             xml_b64 = doc_data.get("ArquivoXml")
 
-            # Update NSU range
+            # Track NSU for range update
             if nsu:
-                log.update_nsu_range(nsu)
+                nsu_values.append(nsu)
 
             # Handle events (cancellation, etc.)
             if tipo_doc == "EVENTO":
@@ -331,21 +334,34 @@ def _fetch_nfse_documents(endpoint, cert_path, key_path, last_nsu, company_setti
             # Decode XML
             xml_content = _decode_xml(xml_b64)
 
-            # Check for duplicates
+            # Check for duplicates by chave_de_acesso
             if chave and frappe.db.exists("Nota Fiscal", {"chave_de_acesso": chave}):
                 # Update origin flag
                 existing = frappe.get_value("Nota Fiscal", {"chave_de_acesso": chave}, "name")
                 frappe.db.set_value("Nota Fiscal", existing, "origin_sefaz", 1)
                 skipped += 1
+                frappe.logger().info(f"NFS-e Fetch: Skipped duplicate by chave: {chave}")
+                continue
+
+            # Also check by NSU to prevent duplicates if chave is missing
+            if nsu and frappe.db.exists("Nota Fiscal", {"nsu": str(nsu), "company": company_settings.company}):
+                skipped += 1
+                frappe.logger().info(f"NFS-e Fetch: Skipped duplicate by NSU: {nsu}")
                 continue
 
             # Create Nota Fiscal
-            _create_nota_fiscal_from_xml(xml_content, "NFS-e", company_settings, chave)
+            _create_nota_fiscal_from_xml(xml_content, "NFS-e", company_settings, chave, nsu)
             created += 1
 
         except Exception as e:
             frappe.log_error(str(e), f"Error processing NFS-e document")
             log.update_counts(failed=1)
+
+    # Update NSU range once at the end (more efficient)
+    if nsu_values:
+        log.first_nsu = log.first_nsu or str(min(nsu_values))
+        log.last_nsu = str(max(nsu_values))
+        log.save(ignore_permissions=True)
 
     # Update company settings with last NSU
     max_nsu = int(last_nsu or 0)
@@ -467,6 +483,16 @@ def _process_evento(chave_acesso, tipo_evento, xml_b64):
     is_cancellation = any(ind in tipo_evento_lower for ind in cancellation_indicators)
 
     if is_cancellation:
+        # Get full NF document to check for linked documents
+        nf_doc = frappe.get_doc("Nota Fiscal", nf_name)
+
+        # Check for linked Purchase Invoice
+        linked_docs_issues = []
+        if nf_doc.purchase_invoice:
+            pi_result = _handle_linked_purchase_invoice(nf_doc.purchase_invoice, nf_name)
+            if not pi_result["success"]:
+                linked_docs_issues.append(pi_result)
+
         # Mark the NF as cancelled
         frappe.db.set_value(
             "Nota Fiscal",
@@ -484,9 +510,8 @@ def _process_evento(chave_acesso, tipo_evento, xml_b64):
 
         # Store event XML if available
         if xml_content:
-            # Add to eventos child table or store separately
             try:
-                nf_doc = frappe.get_doc("Nota Fiscal", nf_name)
+                nf_doc.reload()
                 nf_doc.append("eventos", {
                     "tipo_evento": "Cancelamento",
                     "codigo_evento": tipo_evento,
@@ -497,11 +522,169 @@ def _process_evento(chave_acesso, tipo_evento, xml_b64):
                 nf_doc.save(ignore_permissions=True)
             except Exception as e:
                 frappe.logger().warning(f"Could not add event to NF {nf_name}: {e}")
+
+        # Send alert email if there were issues with linked documents
+        if linked_docs_issues:
+            _send_cancellation_alert(nf_doc, linked_docs_issues)
     else:
         frappe.logger().info(f"Event {tipo_evento} received for NF {nf_name} (not processed)")
 
 
-def _create_nota_fiscal_from_xml(xml_content, document_type, company_settings, chave=None):
+def _handle_linked_purchase_invoice(pi_name, nf_name):
+    """
+    Handle a linked Purchase Invoice when the NF is cancelled.
+
+    Attempts to cancel the Purchase Invoice if possible.
+
+    Args:
+        pi_name: Name of the Purchase Invoice
+        nf_name: Name of the Nota Fiscal
+
+    Returns:
+        dict: Result with success flag and message
+    """
+    try:
+        pi_doc = frappe.get_doc("Purchase Invoice", pi_name)
+
+        # Check if invoice is already cancelled
+        if pi_doc.docstatus == 2:
+            return {
+                "success": True,
+                "document_type": "Purchase Invoice",
+                "document_name": pi_name,
+                "message": "Already cancelled"
+            }
+
+        # Check if invoice is submitted
+        if pi_doc.docstatus == 1:
+            # Try to cancel it
+            try:
+                pi_doc.flags.ignore_permissions = True
+                pi_doc.cancel()
+                frappe.logger().info(f"Purchase Invoice {pi_name} cancelled due to NF {nf_name} cancellation")
+                return {
+                    "success": True,
+                    "document_type": "Purchase Invoice",
+                    "document_name": pi_name,
+                    "message": "Cancelled successfully"
+                }
+            except Exception as e:
+                # Cancellation failed - likely due to linked GL entries, payments, etc.
+                frappe.logger().warning(
+                    f"Could not cancel Purchase Invoice {pi_name}: {e}"
+                )
+                return {
+                    "success": False,
+                    "document_type": "Purchase Invoice",
+                    "document_name": pi_name,
+                    "message": str(e),
+                    "action_required": "Manual cancellation required"
+                }
+        else:
+            # Invoice is in draft - just delete it
+            try:
+                frappe.delete_doc("Purchase Invoice", pi_name, ignore_permissions=True)
+                frappe.logger().info(f"Draft Purchase Invoice {pi_name} deleted due to NF {nf_name} cancellation")
+                return {
+                    "success": True,
+                    "document_type": "Purchase Invoice",
+                    "document_name": pi_name,
+                    "message": "Draft deleted"
+                }
+            except Exception as e:
+                return {
+                    "success": False,
+                    "document_type": "Purchase Invoice",
+                    "document_name": pi_name,
+                    "message": str(e),
+                    "action_required": "Manual deletion required"
+                }
+
+    except Exception as e:
+        frappe.logger().error(f"Error handling linked Purchase Invoice {pi_name}: {e}")
+        return {
+            "success": False,
+            "document_type": "Purchase Invoice",
+            "document_name": pi_name,
+            "message": str(e),
+            "action_required": "Check document status"
+        }
+
+
+def _send_cancellation_alert(nf_doc, issues):
+    """
+    Send email alert when a cancellation event cannot fully process linked documents.
+
+    Args:
+        nf_doc: The Nota Fiscal document
+        issues: List of issues with linked documents
+    """
+    settings = frappe.get_single("Nota Fiscal Settings")
+
+    # Check if alerts are enabled and email is configured
+    if not settings.send_cancellation_alerts:
+        return
+
+    if not settings.alert_email:
+        frappe.logger().warning("Cancellation alert not sent: No alert email configured")
+        return
+
+    # Build email content
+    subject = _("Action Required: NF Cancellation - {0}").format(nf_doc.name)
+
+    issues_html = ""
+    for issue in issues:
+        issues_html += f"""
+        <tr>
+            <td>{issue.get('document_type', '')}</td>
+            <td>{issue.get('document_name', '')}</td>
+            <td>{issue.get('message', '')}</td>
+            <td><strong>{issue.get('action_required', '')}</strong></td>
+        </tr>
+        """
+
+    message = f"""
+    <h3>Nota Fiscal Cancellation Alert</h3>
+
+    <p>A Nota Fiscal was cancelled at SEFAZ but some linked documents could not be cancelled automatically.</p>
+
+    <h4>Nota Fiscal Details:</h4>
+    <ul>
+        <li><strong>Document:</strong> {nf_doc.name}</li>
+        <li><strong>Chave de Acesso:</strong> {nf_doc.chave_de_acesso or '-'}</li>
+        <li><strong>Supplier:</strong> {nf_doc.emitente_razao_social or nf_doc.emitente_cnpj or '-'}</li>
+        <li><strong>Value:</strong> R$ {nf_doc.valor_total or 0:,.2f}</li>
+    </ul>
+
+    <h4>Documents Requiring Action:</h4>
+    <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse;">
+        <tr style="background-color: #f0f0f0;">
+            <th>Document Type</th>
+            <th>Document</th>
+            <th>Error</th>
+            <th>Action Required</th>
+        </tr>
+        {issues_html}
+    </table>
+
+    <p>Please review and take the necessary action to cancel or adjust these linked documents.</p>
+
+    <p><a href="{frappe.utils.get_url()}/app/nota-fiscal/{nf_doc.name}">View Nota Fiscal</a></p>
+    """
+
+    try:
+        frappe.sendmail(
+            recipients=[settings.alert_email],
+            subject=subject,
+            message=message,
+            now=True
+        )
+        frappe.logger().info(f"Cancellation alert sent for NF {nf_doc.name}")
+    except Exception as e:
+        frappe.logger().error(f"Failed to send cancellation alert: {e}")
+
+
+def _create_nota_fiscal_from_xml(xml_content, document_type, company_settings, chave=None, nsu=None):
     """
     Create a Nota Fiscal document from XML content.
     """
@@ -521,6 +704,10 @@ def _create_nota_fiscal_from_xml(xml_content, document_type, company_settings, c
     # Set chave if provided
     if chave:
         nf_doc.chave_de_acesso = chave
+
+    # Set NSU if provided (for duplicate detection)
+    if nsu:
+        nf_doc.nsu = str(nsu)
 
     # Populate from parsed data
     for field, value in data.items():
@@ -578,3 +765,59 @@ def test_sefaz_connection(company_settings_name):
                 "status": "error",
                 "message": str(e)
             }
+
+
+def send_error_alert(subject, error_message, context=None):
+    """
+    Send error alert email when processing errors occur.
+
+    Args:
+        subject: Email subject
+        error_message: The error message/traceback
+        context: Optional dict with additional context (nf_name, document_type, etc.)
+    """
+    settings = frappe.get_single("Nota Fiscal Settings")
+
+    # Check if error alerts are enabled and email is configured
+    if not settings.send_error_alerts:
+        return
+
+    if not settings.alert_email:
+        frappe.logger().warning("Error alert not sent: No alert email configured")
+        return
+
+    context = context or {}
+
+    # Build context HTML
+    context_html = ""
+    if context:
+        context_items = ""
+        for key, value in context.items():
+            context_items += f"<li><strong>{key}:</strong> {value}</li>"
+        context_html = f"<h4>Context:</h4><ul>{context_items}</ul>"
+
+    message = f"""
+    <h3>Brazil NF Processing Error</h3>
+
+    {context_html}
+
+    <h4>Error Details:</h4>
+    <pre style="background-color: #f5f5f5; padding: 10px; border: 1px solid #ddd; overflow-x: auto;">
+{error_message}
+    </pre>
+
+    <p>Please review the error log for more details.</p>
+
+    <p><a href="{frappe.utils.get_url()}/app/error-log">View Error Log</a></p>
+    """
+
+    try:
+        frappe.sendmail(
+            recipients=[settings.alert_email],
+            subject=f"[Brazil NF Error] {subject}",
+            message=message,
+            now=True
+        )
+        frappe.logger().info(f"Error alert sent: {subject}")
+    except Exception as e:
+        frappe.logger().error(f"Failed to send error alert: {e}")

@@ -35,6 +35,13 @@ class NFProcessor:
             "po_status": nf_doc.po_status
         }
 
+        # Check if document is cancelled - cannot process cancelled documents
+        if nf_doc.cancelada or nf_doc.processing_status == "Cancelled":
+            frappe.throw(
+                _("Cannot process a cancelled document. This Nota Fiscal was cancelled at SEFAZ."),
+                title=_("Document Cancelled")
+            )
+
         try:
             # Step 1: Ensure parsed
             if nf_doc.processing_status == "New":
@@ -166,6 +173,12 @@ def process_nota_fiscal_background(nf_name):
     Background job to process a Nota Fiscal.
     """
     nf_doc = frappe.get_doc("Nota Fiscal", nf_name)
+
+    # Skip if document is cancelled
+    if nf_doc.cancelada or nf_doc.processing_status == "Cancelled":
+        frappe.logger().info(f"Skipping processing of cancelled NF: {nf_name}")
+        return
+
     processor = NFProcessor()
     processor.process(nf_doc)
 
