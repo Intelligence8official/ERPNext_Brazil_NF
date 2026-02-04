@@ -1,0 +1,25 @@
+[project]
+name = "brazil_nf"
+version = "0.0.1"
+description = "Brazilian Nota Fiscal Management for ERPNext - Captures NF-e, CT-e, and NFS-e"
+authors = [
+    {name = "Your Company", email = "contact@yourcompany.com"}
+]
+license = {text = "MIT"}
+requires-python = ">=3.10"
+readme = "README.md"
+
+dependencies = [
+    "frappe",
+    "erpnext",
+    "cryptography>=46.0.0",
+    "requests>=2.32.0",
+]
+
+[build-system]
+requires = ["flit_core>=3.4"]
+build-backend = "flit_core.buildapi"
+
+[tool.bench.frappe-dependencies]
+frappe = ">=15.0.0"
+erpnext = ">=15.0.0"

@@ -1,0 +1,397 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "numero_item",
+  "codigo_produto",
+  "codigo_barras",
+  "descricao",
+  "column_break_basic",
+  "item",
+  "item_status",
+  "fiscal_section",
+  "ncm",
+  "cest",
+  "cfop",
+  "origem",
+  "column_break_fiscal",
+  "codigo_tributacao_nacional",
+  "codigo_tributacao_municipal",
+  "codigo_nbs",
+  "codigo_interno_contribuinte",
+  "qty_section",
+  "quantidade",
+  "unidade",
+  "column_break_qty",
+  "valor_unitario",
+  "valor_total",
+  "valor_desconto",
+  "valor_frete",
+  "icms_section",
+  "icms_cst",
+  "icms_origem",
+  "column_break_icms1",
+  "icms_base_calculo",
+  "icms_aliquota",
+  "icms_valor",
+  "column_break_icms2",
+  "icms_st_base_calculo",
+  "icms_st_aliquota",
+  "icms_st_valor",
+  "ipi_section",
+  "ipi_cst",
+  "column_break_ipi",
+  "ipi_base_calculo",
+  "ipi_aliquota",
+  "ipi_valor",
+  "pis_section",
+  "pis_cst",
+  "column_break_pis",
+  "pis_base_calculo",
+  "pis_aliquota",
+  "pis_valor",
+  "cofins_section",
+  "cofins_cst",
+  "column_break_cofins",
+  "cofins_base_calculo",
+  "cofins_aliquota",
+  "cofins_valor",
+  "iss_section",
+  "iss_base_calculo",
+  "iss_aliquota",
+  "iss_valor",
+  "iss_retido"
+ ],
+ "fields": [
+  {
+   "fieldname": "numero_item",
+   "fieldtype": "Int",
+   "label": "Item Number",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "codigo_produto",
+   "fieldtype": "Data",
+   "label": "Product Code",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "codigo_barras",
+   "fieldtype": "Data",
+   "label": "Barcode (EAN/GTIN)"
+  },
+  {
+   "fieldname": "descricao",
+   "fieldtype": "Small Text",
+   "label": "Description",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_basic",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "label": "ERPNext Item",
+   "options": "Item",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "item_status",
+   "fieldtype": "Select",
+   "label": "Item Status",
+   "options": "Pending\nLinked\nCreated\nFailed",
+   "default": "Pending",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "fiscal_section",
+   "fieldtype": "Section Break",
+   "label": "Fiscal Classification",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "ncm",
+   "fieldtype": "Data",
+   "label": "NCM Code",
+   "description": "8 digits"
+  },
+  {
+   "fieldname": "cest",
+   "fieldtype": "Data",
+   "label": "CEST Code",
+   "description": "7 digits"
+  },
+  {
+   "fieldname": "cfop",
+   "fieldtype": "Data",
+   "label": "CFOP",
+   "description": "4 digits"
+  },
+  {
+   "fieldname": "origem",
+   "fieldtype": "Select",
+   "label": "Origin",
+   "options": "\n0 - National\n1 - Foreign Import\n2 - Foreign Acquired\n3 - National >40% Import\n4 - National Production\n5 - National <40% Import\n6 - Foreign No Similar\n7 - Foreign Similar Exists\n8 - National >70% Import"
+  },
+  {
+   "fieldname": "column_break_fiscal",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "codigo_tributacao_nacional",
+   "fieldtype": "Data",
+   "label": "National Tax Code (cTribNac)",
+   "description": "6 digits (NFS-e)"
+  },
+  {
+   "fieldname": "codigo_tributacao_municipal",
+   "fieldtype": "Data",
+   "label": "Municipal Tax Code (cTribMun)"
+  },
+  {
+   "fieldname": "codigo_nbs",
+   "fieldtype": "Data",
+   "label": "NBS Code",
+   "description": "9 digits"
+  },
+  {
+   "fieldname": "codigo_interno_contribuinte",
+   "fieldtype": "Data",
+   "label": "Internal Code (cIntContrib)",
+   "description": "12 digits"
+  },
+  {
+   "fieldname": "qty_section",
+   "fieldtype": "Section Break",
+   "label": "Quantities & Values"
+  },
+  {
+   "fieldname": "quantidade",
+   "fieldtype": "Float",
+   "label": "Quantity",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "unidade",
+   "fieldtype": "Data",
+   "label": "UOM"
+  },
+  {
+   "fieldname": "column_break_qty",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "valor_unitario",
+   "fieldtype": "Currency",
+   "label": "Unit Price"
+  },
+  {
+   "fieldname": "valor_total",
+   "fieldtype": "Currency",
+   "label": "Total Value",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "valor_desconto",
+   "fieldtype": "Currency",
+   "label": "Discount"
+  },
+  {
+   "fieldname": "valor_frete",
+   "fieldtype": "Currency",
+   "label": "Freight"
+  },
+  {
+   "fieldname": "icms_section",
+   "fieldtype": "Section Break",
+   "label": "ICMS",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "icms_cst",
+   "fieldtype": "Data",
+   "label": "CST",
+   "description": "00,10,20,30,40,41,50,51,60,70,90"
+  },
+  {
+   "fieldname": "icms_origem",
+   "fieldtype": "Data",
+   "label": "Origin Code"
+  },
+  {
+   "fieldname": "column_break_icms1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "icms_base_calculo",
+   "fieldtype": "Currency",
+   "label": "Base"
+  },
+  {
+   "fieldname": "icms_aliquota",
+   "fieldtype": "Percent",
+   "label": "Rate"
+  },
+  {
+   "fieldname": "icms_valor",
+   "fieldtype": "Currency",
+   "label": "Value"
+  },
+  {
+   "fieldname": "column_break_icms2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "icms_st_base_calculo",
+   "fieldtype": "Currency",
+   "label": "ST Base"
+  },
+  {
+   "fieldname": "icms_st_aliquota",
+   "fieldtype": "Percent",
+   "label": "ST Rate"
+  },
+  {
+   "fieldname": "icms_st_valor",
+   "fieldtype": "Currency",
+   "label": "ST Value"
+  },
+  {
+   "fieldname": "ipi_section",
+   "fieldtype": "Section Break",
+   "label": "IPI",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "ipi_cst",
+   "fieldtype": "Data",
+   "label": "CST",
+   "description": "00-05,49-55,99"
+  },
+  {
+   "fieldname": "column_break_ipi",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ipi_base_calculo",
+   "fieldtype": "Currency",
+   "label": "Base"
+  },
+  {
+   "fieldname": "ipi_aliquota",
+   "fieldtype": "Percent",
+   "label": "Rate"
+  },
+  {
+   "fieldname": "ipi_valor",
+   "fieldtype": "Currency",
+   "label": "Value"
+  },
+  {
+   "fieldname": "pis_section",
+   "fieldtype": "Section Break",
+   "label": "PIS",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "pis_cst",
+   "fieldtype": "Data",
+   "label": "CST",
+   "description": "01-09,49,50-56,60-67,70-75,98,99"
+  },
+  {
+   "fieldname": "column_break_pis",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "pis_base_calculo",
+   "fieldtype": "Currency",
+   "label": "Base"
+  },
+  {
+   "fieldname": "pis_aliquota",
+   "fieldtype": "Percent",
+   "label": "Rate"
+  },
+  {
+   "fieldname": "pis_valor",
+   "fieldtype": "Currency",
+   "label": "Value"
+  },
+  {
+   "fieldname": "cofins_section",
+   "fieldtype": "Section Break",
+   "label": "COFINS",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "cofins_cst",
+   "fieldtype": "Data",
+   "label": "CST"
+  },
+  {
+   "fieldname": "column_break_cofins",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cofins_base_calculo",
+   "fieldtype": "Currency",
+   "label": "Base"
+  },
+  {
+   "fieldname": "cofins_aliquota",
+   "fieldtype": "Percent",
+   "label": "Rate"
+  },
+  {
+   "fieldname": "cofins_valor",
+   "fieldtype": "Currency",
+   "label": "Value"
+  },
+  {
+   "fieldname": "iss_section",
+   "fieldtype": "Section Break",
+   "label": "ISS (NFS-e)",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "iss_base_calculo",
+   "fieldtype": "Currency",
+   "label": "Base"
+  },
+  {
+   "fieldname": "iss_aliquota",
+   "fieldtype": "Percent",
+   "label": "Rate"
+  },
+  {
+   "fieldname": "iss_valor",
+   "fieldtype": "Currency",
+   "label": "Value"
+  },
+  {
+   "fieldname": "iss_retido",
+   "fieldtype": "Check",
+   "label": "ISS Retained"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Brazil NF",
+ "name": "Nota Fiscal Item",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "numero_item",
+ "sort_order": "ASC",
+ "states": [],
+ "track_changes": 1
+}

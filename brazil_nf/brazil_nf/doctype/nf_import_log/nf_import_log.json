@@ -1,0 +1,196 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "naming_series:",
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "company",
+  "document_type",
+  "source",
+  "column_break_basic",
+  "status",
+  "started_at",
+  "completed_at",
+  "results_section",
+  "documents_fetched",
+  "documents_created",
+  "documents_skipped",
+  "column_break_results",
+  "documents_failed",
+  "first_nsu",
+  "last_nsu",
+  "error_section",
+  "error_message",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "NFLOG-.#####",
+   "reqd": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "document_type",
+   "fieldtype": "Select",
+   "label": "Document Type",
+   "options": "NF-e\nCT-e\nNFS-e\nAll",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "source",
+   "fieldtype": "Select",
+   "label": "Source",
+   "options": "SEFAZ\nEmail\nManual Upload",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "column_break_basic",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Running\nSuccess\nPartial\nFailed",
+   "default": "Running",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "started_at",
+   "fieldtype": "Datetime",
+   "label": "Started At",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "completed_at",
+   "fieldtype": "Datetime",
+   "label": "Completed At"
+  },
+  {
+   "fieldname": "results_section",
+   "fieldtype": "Section Break",
+   "label": "Results"
+  },
+  {
+   "fieldname": "documents_fetched",
+   "fieldtype": "Int",
+   "label": "Documents Fetched",
+   "default": "0",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "documents_created",
+   "fieldtype": "Int",
+   "label": "Documents Created",
+   "default": "0"
+  },
+  {
+   "fieldname": "documents_skipped",
+   "fieldtype": "Int",
+   "label": "Documents Skipped (Duplicates)",
+   "default": "0"
+  },
+  {
+   "fieldname": "column_break_results",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "documents_failed",
+   "fieldtype": "Int",
+   "label": "Documents Failed",
+   "default": "0"
+  },
+  {
+   "fieldname": "first_nsu",
+   "fieldtype": "Data",
+   "label": "First NSU"
+  },
+  {
+   "fieldname": "last_nsu",
+   "fieldtype": "Data",
+   "label": "Last NSU"
+  },
+  {
+   "fieldname": "error_section",
+   "fieldtype": "Section Break",
+   "label": "Error Details",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "error_message",
+   "fieldtype": "Long Text",
+   "label": "Error Message"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "NF Import Log",
+   "read_only": 1,
+   "no_copy": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Brazil NF",
+ "name": "NF Import Log",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Brazil NF Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Brazil NF User"
+  }
+ ],
+ "search_fields": "company,document_type,source",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

@@ -1,0 +1,856 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "naming_series:",
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "identification_section",
+  "naming_series",
+  "document_type",
+  "chave_de_acesso",
+  "numero",
+  "serie",
+  "column_break_id1",
+  "data_emissao",
+  "data_recebimento",
+  "company",
+  "origin_section",
+  "origin_sefaz",
+  "origin_email",
+  "column_break_origin",
+  "email_reference",
+  "emitente_section",
+  "emitente_cnpj",
+  "emitente_razao_social",
+  "column_break_emit1",
+  "emitente_ie",
+  "emitente_im",
+  "column_break_emit2",
+  "emitente_uf",
+  "emitente_municipio",
+  "tomador_section",
+  "tomador_cnpj",
+  "tomador_razao_social",
+  "column_break_toma1",
+  "tomador_ie",
+  "tomador_im",
+  "nfse_section",
+  "regime_simples_nacional",
+  "regime_especial_tributacao",
+  "column_break_nfse1",
+  "codigo_tributacao_nacional",
+  "codigo_tributacao_municipal",
+  "codigo_nbs",
+  "column_break_nfse2",
+  "descricao_servico",
+  "local_prestacao",
+  "cte_section",
+  "modal_transporte",
+  "tipo_servico_transporte",
+  "column_break_cte1",
+  "remetente_cnpj",
+  "remetente_razao_social",
+  "column_break_cte2",
+  "destinatario_cnpj",
+  "destinatario_razao_social",
+  "values_section",
+  "valor_total",
+  "valor_produtos",
+  "valor_servicos",
+  "column_break_val1",
+  "valor_frete",
+  "valor_seguro",
+  "valor_desconto",
+  "valor_outras_despesas",
+  "tax_nfe_section",
+  "valor_bc_icms",
+  "valor_icms",
+  "valor_bc_icms_st",
+  "valor_icms_st",
+  "column_break_tax1",
+  "valor_ipi",
+  "valor_pis",
+  "valor_cofins",
+  "column_break_tax2",
+  "valor_ii",
+  "valor_fcp",
+  "tax_nfse_section",
+  "valor_bc_issqn",
+  "valor_issqn",
+  "aliquota_issqn",
+  "column_break_iss1",
+  "valor_irrf",
+  "valor_inss",
+  "valor_csll",
+  "column_break_iss2",
+  "valor_pis_servico",
+  "valor_cofins_servico",
+  "valor_deducoes",
+  "valor_liquido",
+  "tax_cte_section",
+  "valor_prestacao",
+  "valor_receber",
+  "tax_totals_section",
+  "valor_total_tributos_federais",
+  "valor_total_tributos_estaduais",
+  "valor_total_tributos_municipais",
+  "status_section",
+  "processing_status",
+  "supplier_status",
+  "column_break_status1",
+  "item_creation_status",
+  "po_status",
+  "column_break_status2",
+  "invoice_status",
+  "processing_error",
+  "links_section",
+  "supplier",
+  "purchase_order",
+  "column_break_links",
+  "purchase_invoice",
+  "xml_section",
+  "xml_file",
+  "xml_content",
+  "sefaz_section",
+  "status_sefaz",
+  "protocolo_autorizacao",
+  "data_autorizacao",
+  "column_break_sefaz",
+  "cancelada",
+  "motivo_cancelamento",
+  "data_cancelamento",
+  "nf_substituida",
+  "items_section",
+  "items",
+  "eventos_section",
+  "eventos",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "identification_section",
+   "fieldtype": "Section Break",
+   "label": "Identification"
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "NF-.#####",
+   "reqd": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "document_type",
+   "fieldtype": "Select",
+   "label": "Document Type",
+   "options": "NF-e\nCT-e\nNFS-e",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "chave_de_acesso",
+   "fieldtype": "Data",
+   "label": "Chave de Acesso",
+   "unique": 1,
+   "in_list_view": 1,
+   "description": "44-digit access key"
+  },
+  {
+   "fieldname": "numero",
+   "fieldtype": "Data",
+   "label": "Number",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "serie",
+   "fieldtype": "Data",
+   "label": "Series"
+  },
+  {
+   "fieldname": "column_break_id1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "data_emissao",
+   "fieldtype": "Date",
+   "label": "Issue Date",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "data_recebimento",
+   "fieldtype": "Datetime",
+   "label": "Received At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "origin_section",
+   "fieldtype": "Section Break",
+   "label": "Origin",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "origin_sefaz",
+   "fieldtype": "Check",
+   "label": "Received from SEFAZ",
+   "read_only": 1
+  },
+  {
+   "fieldname": "origin_email",
+   "fieldtype": "Check",
+   "label": "Received from Email",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_origin",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "email_reference",
+   "fieldtype": "Link",
+   "label": "Email Reference",
+   "options": "Communication",
+   "read_only": 1
+  },
+  {
+   "fieldname": "emitente_section",
+   "fieldtype": "Section Break",
+   "label": "Issuer (Emitente)"
+  },
+  {
+   "fieldname": "emitente_cnpj",
+   "fieldtype": "Data",
+   "label": "CNPJ",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "emitente_razao_social",
+   "fieldtype": "Data",
+   "label": "Company Name",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_emit1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "emitente_ie",
+   "fieldtype": "Data",
+   "label": "State Registration (IE)"
+  },
+  {
+   "fieldname": "emitente_im",
+   "fieldtype": "Data",
+   "label": "Municipal Registration (IM)"
+  },
+  {
+   "fieldname": "column_break_emit2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "emitente_uf",
+   "fieldtype": "Data",
+   "label": "State (UF)"
+  },
+  {
+   "fieldname": "emitente_municipio",
+   "fieldtype": "Data",
+   "label": "Municipality Code"
+  },
+  {
+   "fieldname": "tomador_section",
+   "fieldtype": "Section Break",
+   "label": "Recipient (Tomador/Destinatario)",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "tomador_cnpj",
+   "fieldtype": "Data",
+   "label": "CNPJ"
+  },
+  {
+   "fieldname": "tomador_razao_social",
+   "fieldtype": "Data",
+   "label": "Company Name"
+  },
+  {
+   "fieldname": "column_break_toma1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tomador_ie",
+   "fieldtype": "Data",
+   "label": "State Registration (IE)"
+  },
+  {
+   "fieldname": "tomador_im",
+   "fieldtype": "Data",
+   "label": "Municipal Registration (IM)"
+  },
+  {
+   "fieldname": "nfse_section",
+   "fieldtype": "Section Break",
+   "label": "Service Info (NFS-e)",
+   "collapsible": 1,
+   "depends_on": "eval:doc.document_type=='NFS-e'"
+  },
+  {
+   "fieldname": "regime_simples_nacional",
+   "fieldtype": "Select",
+   "label": "Simples Nacional Regime",
+   "options": "\n1 - MEI\n2 - Simples Nacional\n3 - Not Applicable"
+  },
+  {
+   "fieldname": "regime_especial_tributacao",
+   "fieldtype": "Data",
+   "label": "Special Tax Regime"
+  },
+  {
+   "fieldname": "column_break_nfse1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "codigo_tributacao_nacional",
+   "fieldtype": "Data",
+   "label": "National Tax Code (cTribNac)"
+  },
+  {
+   "fieldname": "codigo_tributacao_municipal",
+   "fieldtype": "Data",
+   "label": "Municipal Tax Code (cTribMun)"
+  },
+  {
+   "fieldname": "codigo_nbs",
+   "fieldtype": "Data",
+   "label": "NBS Code"
+  },
+  {
+   "fieldname": "column_break_nfse2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "descricao_servico",
+   "fieldtype": "Long Text",
+   "label": "Service Description"
+  },
+  {
+   "fieldname": "local_prestacao",
+   "fieldtype": "Data",
+   "label": "Service Location"
+  },
+  {
+   "fieldname": "cte_section",
+   "fieldtype": "Section Break",
+   "label": "Transport Info (CT-e)",
+   "collapsible": 1,
+   "depends_on": "eval:doc.document_type=='CT-e'"
+  },
+  {
+   "fieldname": "modal_transporte",
+   "fieldtype": "Select",
+   "label": "Transport Mode",
+   "options": "\nRodoviario\nAereo\nAquaviario\nFerroviario\nDutoviario\nMultimodal"
+  },
+  {
+   "fieldname": "tipo_servico_transporte",
+   "fieldtype": "Select",
+   "label": "Transport Service Type",
+   "options": "\nNormal\nSubcontratacao\nRedespacho\nRedespacho Intermediario\nServico Vinculado a Multimodal"
+  },
+  {
+   "fieldname": "column_break_cte1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "remetente_cnpj",
+   "fieldtype": "Data",
+   "label": "Sender CNPJ"
+  },
+  {
+   "fieldname": "remetente_razao_social",
+   "fieldtype": "Data",
+   "label": "Sender Name"
+  },
+  {
+   "fieldname": "column_break_cte2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "destinatario_cnpj",
+   "fieldtype": "Data",
+   "label": "Destination CNPJ"
+  },
+  {
+   "fieldname": "destinatario_razao_social",
+   "fieldtype": "Data",
+   "label": "Destination Name"
+  },
+  {
+   "fieldname": "values_section",
+   "fieldtype": "Section Break",
+   "label": "Values"
+  },
+  {
+   "fieldname": "valor_total",
+   "fieldtype": "Currency",
+   "label": "Total Value",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "valor_produtos",
+   "fieldtype": "Currency",
+   "label": "Products Value"
+  },
+  {
+   "fieldname": "valor_servicos",
+   "fieldtype": "Currency",
+   "label": "Services Value"
+  },
+  {
+   "fieldname": "column_break_val1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "valor_frete",
+   "fieldtype": "Currency",
+   "label": "Freight Value"
+  },
+  {
+   "fieldname": "valor_seguro",
+   "fieldtype": "Currency",
+   "label": "Insurance Value"
+  },
+  {
+   "fieldname": "valor_desconto",
+   "fieldtype": "Currency",
+   "label": "Discount Value"
+  },
+  {
+   "fieldname": "valor_outras_despesas",
+   "fieldtype": "Currency",
+   "label": "Other Expenses"
+  },
+  {
+   "fieldname": "tax_nfe_section",
+   "fieldtype": "Section Break",
+   "label": "Taxes (NF-e/CT-e)",
+   "collapsible": 1,
+   "depends_on": "eval:doc.document_type!='NFS-e'"
+  },
+  {
+   "fieldname": "valor_bc_icms",
+   "fieldtype": "Currency",
+   "label": "ICMS Base"
+  },
+  {
+   "fieldname": "valor_icms",
+   "fieldtype": "Currency",
+   "label": "ICMS Value"
+  },
+  {
+   "fieldname": "valor_bc_icms_st",
+   "fieldtype": "Currency",
+   "label": "ICMS-ST Base"
+  },
+  {
+   "fieldname": "valor_icms_st",
+   "fieldtype": "Currency",
+   "label": "ICMS-ST Value"
+  },
+  {
+   "fieldname": "column_break_tax1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "valor_ipi",
+   "fieldtype": "Currency",
+   "label": "IPI Value"
+  },
+  {
+   "fieldname": "valor_pis",
+   "fieldtype": "Currency",
+   "label": "PIS Value"
+  },
+  {
+   "fieldname": "valor_cofins",
+   "fieldtype": "Currency",
+   "label": "COFINS Value"
+  },
+  {
+   "fieldname": "column_break_tax2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "valor_ii",
+   "fieldtype": "Currency",
+   "label": "Import Tax (II)"
+  },
+  {
+   "fieldname": "valor_fcp",
+   "fieldtype": "Currency",
+   "label": "FCP Value"
+  },
+  {
+   "fieldname": "tax_nfse_section",
+   "fieldtype": "Section Break",
+   "label": "Taxes (NFS-e)",
+   "collapsible": 1,
+   "depends_on": "eval:doc.document_type=='NFS-e'"
+  },
+  {
+   "fieldname": "valor_bc_issqn",
+   "fieldtype": "Currency",
+   "label": "ISS Base"
+  },
+  {
+   "fieldname": "valor_issqn",
+   "fieldtype": "Currency",
+   "label": "ISS Value"
+  },
+  {
+   "fieldname": "aliquota_issqn",
+   "fieldtype": "Percent",
+   "label": "ISS Rate"
+  },
+  {
+   "fieldname": "column_break_iss1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "valor_irrf",
+   "fieldtype": "Currency",
+   "label": "IRRF Retention"
+  },
+  {
+   "fieldname": "valor_inss",
+   "fieldtype": "Currency",
+   "label": "INSS Retention"
+  },
+  {
+   "fieldname": "valor_csll",
+   "fieldtype": "Currency",
+   "label": "CSLL Retention"
+  },
+  {
+   "fieldname": "column_break_iss2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "valor_pis_servico",
+   "fieldtype": "Currency",
+   "label": "PIS (Services)"
+  },
+  {
+   "fieldname": "valor_cofins_servico",
+   "fieldtype": "Currency",
+   "label": "COFINS (Services)"
+  },
+  {
+   "fieldname": "valor_deducoes",
+   "fieldtype": "Currency",
+   "label": "Deductions"
+  },
+  {
+   "fieldname": "valor_liquido",
+   "fieldtype": "Currency",
+   "label": "Net Value"
+  },
+  {
+   "fieldname": "tax_cte_section",
+   "fieldtype": "Section Break",
+   "label": "Transport Values (CT-e)",
+   "collapsible": 1,
+   "depends_on": "eval:doc.document_type=='CT-e'"
+  },
+  {
+   "fieldname": "valor_prestacao",
+   "fieldtype": "Currency",
+   "label": "Service Provision Value"
+  },
+  {
+   "fieldname": "valor_receber",
+   "fieldtype": "Currency",
+   "label": "Receivable Value"
+  },
+  {
+   "fieldname": "tax_totals_section",
+   "fieldtype": "Section Break",
+   "label": "Tax Totals",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "valor_total_tributos_federais",
+   "fieldtype": "Currency",
+   "label": "Total Federal Taxes"
+  },
+  {
+   "fieldname": "valor_total_tributos_estaduais",
+   "fieldtype": "Currency",
+   "label": "Total State Taxes"
+  },
+  {
+   "fieldname": "valor_total_tributos_municipais",
+   "fieldtype": "Currency",
+   "label": "Total Municipal Taxes"
+  },
+  {
+   "fieldname": "status_section",
+   "fieldtype": "Section Break",
+   "label": "Status"
+  },
+  {
+   "fieldname": "processing_status",
+   "fieldtype": "Select",
+   "label": "Processing Status",
+   "options": "New\nParsed\nSupplier Processing\nItem Processing\nPO Matching\nInvoice Creation\nCompleted\nError",
+   "default": "New",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "supplier_status",
+   "fieldtype": "Select",
+   "label": "Supplier Status",
+   "options": "Pending\nLinked\nCreated\nFailed\nNot Found",
+   "default": "Pending",
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "column_break_status1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "item_creation_status",
+   "fieldtype": "Select",
+   "label": "Item Creation Status",
+   "options": "Pending\nAll Created\nPartial\nFailed",
+   "default": "Pending",
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "po_status",
+   "fieldtype": "Select",
+   "label": "PO Status",
+   "options": "Pending\nLinked\nPartial Match\nNot Found\nNot Applicable",
+   "default": "Pending",
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "column_break_status2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "invoice_status",
+   "fieldtype": "Select",
+   "label": "Invoice Status",
+   "options": "Pending\nCreated\nSubmitted\nNot Applicable",
+   "default": "Pending"
+  },
+  {
+   "fieldname": "processing_error",
+   "fieldtype": "Small Text",
+   "label": "Processing Error",
+   "read_only": 1
+  },
+  {
+   "fieldname": "links_section",
+   "fieldtype": "Section Break",
+   "label": "Links"
+  },
+  {
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "label": "Supplier",
+   "options": "Supplier",
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "purchase_order",
+   "fieldtype": "Link",
+   "label": "Purchase Order",
+   "options": "Purchase Order"
+  },
+  {
+   "fieldname": "column_break_links",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "purchase_invoice",
+   "fieldtype": "Link",
+   "label": "Purchase Invoice",
+   "options": "Purchase Invoice"
+  },
+  {
+   "fieldname": "xml_section",
+   "fieldtype": "Section Break",
+   "label": "XML",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "xml_file",
+   "fieldtype": "Attach",
+   "label": "XML File"
+  },
+  {
+   "fieldname": "xml_content",
+   "fieldtype": "Long Text",
+   "label": "XML Content",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sefaz_section",
+   "fieldtype": "Section Break",
+   "label": "SEFAZ Status",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "status_sefaz",
+   "fieldtype": "Select",
+   "label": "SEFAZ Status",
+   "options": "\nAutorizada\nCancelada\nDenegada",
+   "read_only": 1
+  },
+  {
+   "fieldname": "protocolo_autorizacao",
+   "fieldtype": "Data",
+   "label": "Authorization Protocol",
+   "read_only": 1
+  },
+  {
+   "fieldname": "data_autorizacao",
+   "fieldtype": "Datetime",
+   "label": "Authorization Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_sefaz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cancelada",
+   "fieldtype": "Check",
+   "label": "Cancelled",
+   "read_only": 1
+  },
+  {
+   "fieldname": "motivo_cancelamento",
+   "fieldtype": "Data",
+   "label": "Cancellation Reason",
+   "read_only": 1
+  },
+  {
+   "fieldname": "data_cancelamento",
+   "fieldtype": "Datetime",
+   "label": "Cancellation Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "nf_substituida",
+   "fieldtype": "Link",
+   "label": "Replaced NF",
+   "options": "Nota Fiscal"
+  },
+  {
+   "fieldname": "items_section",
+   "fieldtype": "Section Break",
+   "label": "Items"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "Nota Fiscal Item"
+  },
+  {
+   "fieldname": "eventos_section",
+   "fieldtype": "Section Break",
+   "label": "Events",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "eventos",
+   "fieldtype": "Table",
+   "label": "Events",
+   "options": "Nota Fiscal Evento"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Nota Fiscal",
+   "read_only": 1,
+   "no_copy": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 0,
+ "links": [
+  {
+   "link_doctype": "Purchase Invoice",
+   "link_fieldname": "nota_fiscal"
+  },
+  {
+   "link_doctype": "Purchase Order",
+   "link_fieldname": "nota_fiscal"
+  }
+ ],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Brazil NF",
+ "name": "Nota Fiscal",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Brazil NF Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Brazil NF User",
+   "write": 1
+  }
+ ],
+ "search_fields": "chave_de_acesso,emitente_cnpj,emitente_razao_social,numero",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "emitente_razao_social",
+ "track_changes": 1
+}

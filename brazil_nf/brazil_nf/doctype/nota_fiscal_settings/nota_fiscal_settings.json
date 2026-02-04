@@ -1,0 +1,258 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "general_section",
+  "enabled",
+  "default_company",
+  "sefaz_section",
+  "sefaz_environment",
+  "fetch_interval_minutes",
+  "column_break_sefaz",
+  "nfe_enabled",
+  "cte_enabled",
+  "nfse_enabled",
+  "email_section",
+  "email_import_enabled",
+  "email_account",
+  "column_break_email",
+  "email_subject_patterns",
+  "auto_creation_section",
+  "auto_create_supplier",
+  "supplier_group",
+  "column_break_auto1",
+  "auto_create_item",
+  "item_group",
+  "column_break_auto2",
+  "auto_create_invoice",
+  "invoice_submit_mode",
+  "po_matching_section",
+  "enable_po_matching",
+  "po_match_tolerance_percent",
+  "po_match_date_range_days"
+ ],
+ "fields": [
+  {
+   "fieldname": "general_section",
+   "fieldtype": "Section Break",
+   "label": "General Settings"
+  },
+  {
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Module Enabled",
+   "default": "1",
+   "description": "Enable or disable the Brazil NF module"
+  },
+  {
+   "fieldname": "default_company",
+   "fieldtype": "Link",
+   "label": "Default Company",
+   "options": "Company",
+   "description": "Default company for new documents"
+  },
+  {
+   "fieldname": "sefaz_section",
+   "fieldtype": "Section Break",
+   "label": "SEFAZ Integration"
+  },
+  {
+   "fieldname": "sefaz_environment",
+   "fieldtype": "Select",
+   "label": "SEFAZ Environment",
+   "options": "Production\nHomologation",
+   "default": "Production",
+   "description": "Production for live data, Homologation for testing"
+  },
+  {
+   "fieldname": "fetch_interval_minutes",
+   "fieldtype": "Int",
+   "label": "Fetch Interval (minutes)",
+   "default": "10",
+   "description": "How often to check for new documents (minimum 5 minutes)"
+  },
+  {
+   "fieldname": "column_break_sefaz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "nfe_enabled",
+   "fieldtype": "Check",
+   "label": "Fetch NF-e",
+   "default": "1",
+   "description": "Fetch Nota Fiscal Eletronica (products)"
+  },
+  {
+   "fieldname": "cte_enabled",
+   "fieldtype": "Check",
+   "label": "Fetch CT-e",
+   "default": "1",
+   "description": "Fetch Conhecimento de Transporte Eletronico"
+  },
+  {
+   "fieldname": "nfse_enabled",
+   "fieldtype": "Check",
+   "label": "Fetch NFS-e",
+   "default": "1",
+   "description": "Fetch Nota Fiscal de Servico Eletronica"
+  },
+  {
+   "fieldname": "email_section",
+   "fieldtype": "Section Break",
+   "label": "Email Integration"
+  },
+  {
+   "fieldname": "email_import_enabled",
+   "fieldtype": "Check",
+   "label": "Enable Email Import",
+   "default": "0",
+   "description": "Monitor email inbox for NF attachments"
+  },
+  {
+   "fieldname": "email_account",
+   "fieldtype": "Link",
+   "label": "Email Account",
+   "options": "Email Account",
+   "depends_on": "eval:doc.email_import_enabled",
+   "description": "Which email account to monitor"
+  },
+  {
+   "fieldname": "column_break_email",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "email_subject_patterns",
+   "fieldtype": "Small Text",
+   "label": "Email Subject Patterns",
+   "depends_on": "eval:doc.email_import_enabled",
+   "description": "Subject patterns to identify NF emails (one per line). Use * for wildcards."
+  },
+  {
+   "fieldname": "auto_creation_section",
+   "fieldtype": "Section Break",
+   "label": "Auto-Creation Settings"
+  },
+  {
+   "fieldname": "auto_create_supplier",
+   "fieldtype": "Check",
+   "label": "Auto-Create Suppliers",
+   "default": "1",
+   "description": "Automatically create supplier if not found by CNPJ"
+  },
+  {
+   "fieldname": "supplier_group",
+   "fieldtype": "Link",
+   "label": "Default Supplier Group",
+   "options": "Supplier Group",
+   "depends_on": "eval:doc.auto_create_supplier",
+   "description": "Supplier group for auto-created suppliers"
+  },
+  {
+   "fieldname": "column_break_auto1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "auto_create_item",
+   "fieldtype": "Check",
+   "label": "Auto-Create Items",
+   "default": "0",
+   "description": "Automatically create items if not found"
+  },
+  {
+   "fieldname": "item_group",
+   "fieldtype": "Link",
+   "label": "Default Item Group",
+   "options": "Item Group",
+   "depends_on": "eval:doc.auto_create_item",
+   "description": "Item group for auto-created items"
+  },
+  {
+   "fieldname": "column_break_auto2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "auto_create_invoice",
+   "fieldtype": "Check",
+   "label": "Auto-Create Purchase Invoice",
+   "default": "0",
+   "description": "Automatically create Purchase Invoice from NF"
+  },
+  {
+   "fieldname": "invoice_submit_mode",
+   "fieldtype": "Select",
+   "label": "Invoice Submit Mode",
+   "options": "Draft\nAuto Submit",
+   "default": "Draft",
+   "depends_on": "eval:doc.auto_create_invoice",
+   "description": "Whether to submit invoices automatically"
+  },
+  {
+   "fieldname": "po_matching_section",
+   "fieldtype": "Section Break",
+   "label": "PO Matching Settings"
+  },
+  {
+   "fieldname": "enable_po_matching",
+   "fieldtype": "Check",
+   "label": "Enable PO Matching",
+   "default": "1",
+   "description": "Automatically try to match NFs with Purchase Orders"
+  },
+  {
+   "fieldname": "po_match_tolerance_percent",
+   "fieldtype": "Percent",
+   "label": "Value Tolerance (%)",
+   "default": "5",
+   "depends_on": "eval:doc.enable_po_matching",
+   "description": "Acceptable variance between NF and PO values"
+  },
+  {
+   "fieldname": "po_match_date_range_days",
+   "fieldtype": "Int",
+   "label": "Date Range (days)",
+   "default": "30",
+   "depends_on": "eval:doc.enable_po_matching",
+   "description": "Search for POs within this many days of NF date"
+  }
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Brazil NF",
+ "name": "Nota Fiscal Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Brazil NF Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Brazil NF User"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

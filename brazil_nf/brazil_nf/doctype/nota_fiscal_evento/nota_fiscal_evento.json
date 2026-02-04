@@ -1,0 +1,104 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "tipo_evento",
+  "codigo_evento",
+  "sequencia",
+  "column_break_evt1",
+  "data_evento",
+  "protocolo",
+  "details_section",
+  "descricao",
+  "motivo_codigo",
+  "motivo_descricao",
+  "xml_section",
+  "xml_evento"
+ ],
+ "fields": [
+  {
+   "fieldname": "tipo_evento",
+   "fieldtype": "Select",
+   "label": "Event Type",
+   "options": "Cancelamento\nCarta de Correcao\nManifestacao\nCiencia da Operacao\nConfirmacao da Operacao\nOperacao Nao Realizada\nDesconhecimento da Operacao",
+   "in_list_view": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "codigo_evento",
+   "fieldtype": "Data",
+   "label": "Event Code",
+   "description": "e.g., 101101 for cancellation",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "sequencia",
+   "fieldtype": "Int",
+   "label": "Sequence",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_evt1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "data_evento",
+   "fieldtype": "Datetime",
+   "label": "Event Date",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "protocolo",
+   "fieldtype": "Data",
+   "label": "Protocol Number"
+  },
+  {
+   "fieldname": "details_section",
+   "fieldtype": "Section Break",
+   "label": "Details"
+  },
+  {
+   "fieldname": "descricao",
+   "fieldtype": "Data",
+   "label": "Description"
+  },
+  {
+   "fieldname": "motivo_codigo",
+   "fieldtype": "Data",
+   "label": "Reason Code"
+  },
+  {
+   "fieldname": "motivo_descricao",
+   "fieldtype": "Small Text",
+   "label": "Reason Description"
+  },
+  {
+   "fieldname": "xml_section",
+   "fieldtype": "Section Break",
+   "label": "XML",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "xml_evento",
+   "fieldtype": "Long Text",
+   "label": "Event XML"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Brazil NF",
+ "name": "Nota Fiscal Evento",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "sequencia",
+ "sort_order": "ASC",
+ "states": [],
+ "track_changes": 1
+}
