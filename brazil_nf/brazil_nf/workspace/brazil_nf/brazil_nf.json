@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"id\":\"WTxEnD01c9\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Brazil NF</b></span>\",\"col\":12}},{\"id\":\"shortcut_section\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Nota Fiscal\",\"col\":4}},{\"id\":\"shortcut_section_1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"NF Company Settings\",\"col\":4}},{\"id\":\"shortcut_section_2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Nota Fiscal Settings\",\"col\":4}},{\"id\":\"Bb4fXC6k0S\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"XHWUoqE3Hd\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h5\\\">Quick Actions</span>\",\"col\":12}},{\"id\":\"quick_actions\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Fetch from SEFAZ\",\"col\":4}},{\"id\":\"quick_actions_1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Import Logs\",\"col\":4}},{\"id\":\"tSyBnBvXex\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"reports_header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h5\\\">Reports</span>\",\"col\":12}},{\"id\":\"reports\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"NF Reconciliation\",\"col\":4}}]",
+ "content": "[{\"id\":\"WTxEnD01c9\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Brazil NF</b></span>\",\"col\":12}},{\"id\":\"shortcut_section\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Nota Fiscal\",\"col\":4}},{\"id\":\"shortcut_section_1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"NF Company Settings\",\"col\":4}},{\"id\":\"shortcut_section_2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Nota Fiscal Settings\",\"col\":4}},{\"id\":\"Bb4fXC6k0S\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"XHWUoqE3Hd\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h5\\\">Logs</span>\",\"col\":12}},{\"id\":\"quick_actions_1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Import Logs\",\"col\":4}}]",
  "creation": "2024-01-01 00:00:00.000000",
  "custom_blocks": [],
  "docstatus": 0,
@@ -106,13 +106,6 @@
    "label": "Nota Fiscal Settings",
    "link_to": "Nota Fiscal Settings",
    "type": "DocType"
-  },
-  {
-   "color": "Green",
-   "doc_view": "",
-   "label": "Fetch from SEFAZ",
-   "link_to": "brazil_nf.api.fetch_documents",
-   "type": "URL"
   },
   {
    "color": "Grey",
