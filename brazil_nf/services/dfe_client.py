@@ -300,6 +300,12 @@ def _fetch_nfse_documents(endpoint, cert_path, key_path, last_nsu, company_setti
     documents = data.get("LoteDFe", [])
     frappe.logger().info(f"NFS-e Fetch: Found {len(documents)} documents in LoteDFe")
 
+    # Log document structure for debugging
+    if documents:
+        sample_doc = documents[0]
+        frappe.logger().info(f"NFS-e Fetch: Sample document keys: {list(sample_doc.keys())}")
+        frappe.logger().info(f"NFS-e Fetch: Sample NSU value: {sample_doc.get('NSU')} (type: {type(sample_doc.get('NSU')).__name__})")
+
     created = 0
     skipped = 0
     events_processed = 0
@@ -342,22 +348,30 @@ def _fetch_nfse_documents(endpoint, cert_path, key_path, last_nsu, company_setti
             log.update_counts(failed=1)
 
     # Update company settings with last NSU
-    max_nsu = last_nsu
+    max_nsu = int(last_nsu or 0)
+    nsu_list = []
+
     if documents:
         # Find the highest NSU from all documents
         for doc in documents:
             doc_nsu = doc.get("NSU")
-            if doc_nsu:
+            frappe.logger().info(f"NFS-e Fetch: Document NSU = {doc_nsu} (type: {type(doc_nsu).__name__})")
+            if doc_nsu is not None:
                 try:
                     doc_nsu_int = int(doc_nsu)
-                    if doc_nsu_int > int(max_nsu or 0):
-                        max_nsu = str(doc_nsu_int)
-                except (ValueError, TypeError):
-                    pass
+                    nsu_list.append(doc_nsu_int)
+                    if doc_nsu_int > max_nsu:
+                        max_nsu = doc_nsu_int
+                except (ValueError, TypeError) as e:
+                    frappe.logger().warning(f"NFS-e Fetch: Could not parse NSU {doc_nsu}: {e}")
 
-        frappe.logger().info(f"NFS-e Fetch: Updating NSU from {last_nsu} to {max_nsu}")
-        company_settings.update_last_nsu("NFS-e", max_nsu)
-        frappe.db.commit()  # Ensure commit
+        frappe.logger().info(f"NFS-e Fetch: NSU list = {nsu_list}, max = {max_nsu}")
+
+        if max_nsu > int(last_nsu or 0):
+            frappe.logger().info(f"NFS-e Fetch: Updating NSU from {last_nsu} to {max_nsu}")
+            company_settings.update_last_nsu("NFS-e", str(max_nsu))
+        else:
+            frappe.logger().info(f"NFS-e Fetch: NSU not updated (max {max_nsu} <= current {last_nsu})")
 
     log.update_counts(fetched=len(documents), created=created, skipped=skipped)
 
