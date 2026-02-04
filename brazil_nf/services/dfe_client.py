@@ -709,10 +709,37 @@ def _create_nota_fiscal_from_xml(xml_content, document_type, company_settings, c
     if nsu:
         nf_doc.nsu = str(nsu)
 
-    # Populate from parsed data
+    # Extract items before processing other fields
+    items_data = data.pop("items", [])
+
+    # Populate from parsed data (excluding items which need special handling)
     for field, value in data.items():
         if hasattr(nf_doc, field) and value is not None:
             setattr(nf_doc, field, value)
+
+    # Add items to child table
+    for item_data in items_data:
+        nf_doc.append("items", {
+            "numero_item": item_data.get("numero_item"),
+            "codigo_produto": item_data.get("codigo_produto"),
+            "codigo_barras": item_data.get("codigo_barras"),
+            "descricao": item_data.get("descricao"),
+            "ncm": item_data.get("ncm"),
+            "cfop": item_data.get("cfop"),
+            "codigo_tributacao_nacional": item_data.get("codigo_tributacao_nacional"),
+            "codigo_nbs": item_data.get("codigo_nbs"),
+            "unidade": item_data.get("unidade"),
+            "quantidade": item_data.get("quantidade"),
+            "valor_unitario": item_data.get("valor_unitario"),
+            "valor_total": item_data.get("valor_total"),
+            "icms_cst": item_data.get("icms_cst"),
+            "icms_base_calculo": item_data.get("icms_base_calculo"),
+            "icms_aliquota": item_data.get("icms_aliquota"),
+            "icms_valor": item_data.get("icms_valor"),
+            "iss_base_calculo": item_data.get("iss_base_calculo"),
+            "iss_aliquota": item_data.get("iss_aliquota"),
+            "iss_valor": item_data.get("iss_valor")
+        })
 
     nf_doc.xml_content = xml_content
     nf_doc.insert(ignore_permissions=True)

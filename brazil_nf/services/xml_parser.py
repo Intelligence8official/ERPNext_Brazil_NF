@@ -371,6 +371,23 @@ class NFXMLParser:
         if regime:
             data["regime_simples_nacional"] = f"{regime} - {'MEI' if regime == '1' else 'Simples Nacional' if regime == '2' else 'Not Applicable'}"
 
+        # Create item entry for the service
+        # NFS-e typically has a single service, but we treat it as an item for processing
+        data["items"] = [{
+            "numero_item": "1",
+            "codigo_produto": data.get("codigo_tributacao_nacional") or data.get("codigo_nbs") or "",
+            "codigo_tributacao_nacional": data.get("codigo_tributacao_nacional"),
+            "codigo_nbs": data.get("codigo_nbs"),
+            "descricao": data.get("descricao_servico") or "Servico",
+            "quantidade": 1,
+            "valor_unitario": data.get("valor_servicos") or data.get("valor_total"),
+            "valor_total": data.get("valor_servicos") or data.get("valor_total"),
+            "unidade": "UN",
+            "iss_base_calculo": data.get("valor_bc_issqn"),
+            "iss_aliquota": data.get("aliquota_issqn"),
+            "iss_valor": data.get("valor_issqn")
+        }]
+
         return data
 
     def _parse_nfse_abrasf(self, data):
@@ -407,6 +424,23 @@ class NFXMLParser:
         data["aliquota_issqn"] = self._parse_float(
             self._find_text(self.root, [".//Servico//Valores//Aliquota"])
         )
+
+        # Service code
+        service_code = self._find_text(self.root, [".//Servico//ItemListaServico", ".//Servico//CodigoTributacaoMunicipio"])
+
+        # Create item entry for the service
+        data["items"] = [{
+            "numero_item": "1",
+            "codigo_produto": service_code or "",
+            "descricao": data.get("descricao_servico") or "Servico",
+            "quantidade": 1,
+            "valor_unitario": data.get("valor_servicos") or data.get("valor_total"),
+            "valor_total": data.get("valor_servicos") or data.get("valor_total"),
+            "unidade": "UN",
+            "iss_base_calculo": data.get("valor_bc_issqn"),
+            "iss_aliquota": data.get("aliquota_issqn"),
+            "iss_valor": data.get("valor_issqn")
+        }]
 
         return data
 

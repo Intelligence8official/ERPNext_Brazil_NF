@@ -105,16 +105,28 @@ class InvoiceCreator:
                 "uom": nf_item.unidade or "Unit"
             })
 
-        # If no items with linked ERPNext items, create expense entry
+        # If no items with linked ERPNext items, try to find/create a service item
         if not invoice.items:
-            # Add as expense
-            invoice.append("items", {
-                "item_name": f"NF {nf_doc.numero} - {nf_doc.emitente_razao_social}",
-                "description": nf_doc.descricao_servico or f"Nota Fiscal {nf_doc.numero}",
-                "qty": 1,
-                "rate": nf_doc.valor_total or 0,
-                "uom": "Unit"
-            })
+            from brazil_nf.services.item_manager import get_or_create_service_item
+
+            service_item = get_or_create_service_item(nf_doc, self.settings)
+
+            if service_item:
+                invoice.append("items", {
+                    "item_code": service_item,
+                    "item_name": nf_doc.descricao_servico or f"Nota Fiscal {nf_doc.numero}",
+                    "description": nf_doc.descricao_servico or f"NF {nf_doc.numero} - {nf_doc.emitente_razao_social or ''}".strip(),
+                    "qty": 1,
+                    "rate": nf_doc.valor_total or 0,
+                    "uom": "Unit"
+                })
+            else:
+                # Cannot create invoice without items
+                frappe.throw(
+                    _("Cannot create Purchase Invoice: No items could be linked or created. "
+                      "Please enable 'Auto-Create Items' in Nota Fiscal Settings or manually link items."),
+                    title=_("Item Required")
+                )
 
     def _add_taxes(self, invoice, nf_doc):
         """

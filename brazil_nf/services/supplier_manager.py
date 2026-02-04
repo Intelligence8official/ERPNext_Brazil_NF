@@ -62,28 +62,58 @@ class SupplierManager:
         """
         cnpj = clean_cnpj(cnpj)
 
-        # Search in tax_id field
+        # 1. Search in tax_id field - exact match with clean CNPJ
+        suppliers = frappe.get_all(
+            "Supplier",
+            filters={"tax_id": cnpj},
+            pluck="name",
+            limit=1
+        )
+        if suppliers:
+            return suppliers[0]
+
+        # 2. Search with formatted CNPJ
+        formatted = format_cnpj(cnpj)
+        suppliers = frappe.get_all(
+            "Supplier",
+            filters={"tax_id": formatted},
+            pluck="name",
+            limit=1
+        )
+        if suppliers:
+            return suppliers[0]
+
+        # 3. Search with LIKE (partial match) - clean CNPJ
         suppliers = frappe.get_all(
             "Supplier",
             filters={"tax_id": ["like", f"%{cnpj}%"]},
             pluck="name",
             limit=1
         )
-
         if suppliers:
             return suppliers[0]
 
-        # Also try formatted CNPJ
-        formatted = format_cnpj(cnpj)
-        suppliers = frappe.get_all(
-            "Supplier",
-            filters={"tax_id": ["like", f"%{formatted}%"]},
-            pluck="name",
-            limit=1
-        )
+        # 4. Search using SQL to handle different formats
+        # This catches cases where CNPJ might be stored with different separators
+        result = frappe.db.sql("""
+            SELECT name FROM `tabSupplier`
+            WHERE REPLACE(REPLACE(REPLACE(tax_id, '.', ''), '/', ''), '-', '') = %s
+            LIMIT 1
+        """, (cnpj,), as_dict=True)
 
-        if suppliers:
-            return suppliers[0]
+        if result:
+            return result[0].name
+
+        # 5. Search in past Purchase Invoices to find supplier by CNPJ in custom fields
+        invoices = frappe.db.sql("""
+            SELECT DISTINCT supplier FROM `tabPurchase Invoice`
+            WHERE (chave_de_acesso LIKE %s OR bill_no LIKE %s)
+            AND docstatus IN (0, 1)
+            LIMIT 1
+        """, (f"%{cnpj}%", f"%{cnpj}%"), as_dict=True)
+
+        if invoices:
+            return invoices[0].supplier
 
         return None
 

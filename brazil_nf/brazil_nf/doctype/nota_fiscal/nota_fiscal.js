@@ -180,19 +180,27 @@ frappe.ui.form.on('Nota Fiscal', {
             }
         }
 
-        // Add status indicators
-        frm.dashboard.add_indicator(
-            __('Supplier: {0}', [frm.doc.supplier_status]),
-            get_status_color(frm.doc.supplier_status)
-        );
-        frm.dashboard.add_indicator(
-            __('Items: {0}', [frm.doc.item_creation_status]),
-            get_status_color(frm.doc.item_creation_status)
-        );
-        frm.dashboard.add_indicator(
-            __('PO: {0}', [frm.doc.po_status]),
-            get_status_color(frm.doc.po_status)
-        );
+        // Add status indicators (clear first to avoid duplicates)
+        frm.dashboard.clear_headline();
+
+        if (frm.doc.supplier_status) {
+            frm.dashboard.add_indicator(
+                __('Supplier: {0}', [frm.doc.supplier_status]),
+                get_status_color(frm.doc.supplier_status)
+            );
+        }
+        if (frm.doc.item_creation_status) {
+            frm.dashboard.add_indicator(
+                __('Items: {0}', [frm.doc.item_creation_status]),
+                get_status_color(frm.doc.item_creation_status)
+            );
+        }
+        if (frm.doc.po_status) {
+            frm.dashboard.add_indicator(
+                __('PO: {0}', [frm.doc.po_status]),
+                get_status_color(frm.doc.po_status)
+            );
+        }
     },
 
     document_type: function(frm) {
