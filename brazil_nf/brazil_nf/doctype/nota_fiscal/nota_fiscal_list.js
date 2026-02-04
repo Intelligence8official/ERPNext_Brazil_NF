@@ -26,6 +26,7 @@ frappe.listview_settings['Nota Fiscal'] = {
             'PO Matching': ['Matching PO', 'blue', 'processing_status,=,PO Matching'],
             'Invoice Creation': ['Creating Invoice', 'blue', 'processing_status,=,Invoice Creation'],
             'Completed': ['Completed', 'green', 'processing_status,=,Completed'],
+            'Cancelled': ['Cancelled', 'red', 'processing_status,=,Cancelled'],
             'Error': ['Error', 'red', 'processing_status,=,Error']
         };
 
@@ -99,12 +100,25 @@ frappe.listview_settings['Nota Fiscal'] = {
 
     // Default filters - show non-completed documents
     filters: [
-        ['processing_status', '!=', 'Completed']
+        ['processing_status', 'not in', ['Completed', 'Cancelled']]
     ],
 
-    // Bulk actions
     onload: function(listview) {
-        listview.page.add_inner_button(__('Process Selected'), function() {
+        // Add SEFAZ menu with fetch and test options
+        listview.page.add_menu_item(__('Fetch from SEFAZ'), function() {
+            show_fetch_dialog(listview);
+        }, true);
+
+        listview.page.add_menu_item(__('Test Connection'), function() {
+            show_test_connection_dialog();
+        });
+
+        listview.page.add_menu_item(__('Company Settings'), function() {
+            frappe.set_route('List', 'NF Company Settings');
+        });
+
+        // Bulk actions
+        listview.page.add_actions_menu_item(__('Process Selected'), function() {
             const selected = listview.get_checked_items();
             if (selected.length === 0) {
                 frappe.msgprint(__('Please select at least one document'));
@@ -139,25 +153,234 @@ frappe.listview_settings['Nota Fiscal'] = {
         if (doc.processing_status === 'Error') {
             return 'error';
         }
-        if (doc.cancelada) {
+        if (doc.cancelada || doc.processing_status === 'Cancelled') {
             return 'cancelled';
         }
         return '';
     },
 
-    // Button to trigger manual fetch
+    // Primary action button
     primary_action_label: __('Fetch from SEFAZ'),
     primary_action: function() {
-        frappe.call({
-            method: 'brazil_nf.api.fetch_documents',
-            freeze: true,
-            freeze_message: __('Fetching documents from SEFAZ...'),
-            callback: function(r) {
-                frappe.show_alert({
-                    message: __('Fetch initiated'),
-                    indicator: 'green'
-                });
-            }
-        });
+        show_fetch_dialog();
     }
 };
+
+function show_fetch_dialog(listview) {
+    // First, get list of enabled companies
+    frappe.call({
+        method: 'brazil_nf.api.get_enabled_companies',
+        callback: function(r) {
+            if (!r.message || r.message.length === 0) {
+                frappe.msgprint({
+                    title: __('No Companies Configured'),
+                    message: __('Please configure at least one company with a valid certificate in NF Company Settings.'),
+                    indicator: 'orange'
+                });
+                return;
+            }
+
+            const companies = r.message;
+            const company_options = companies.map(c => ({
+                label: `${c.company} (${c.cnpj || 'No CNPJ'})`,
+                value: c.name,
+                description: c.sefaz_environment || 'Production'
+            }));
+
+            // Show dialog
+            const dialog = new frappe.ui.Dialog({
+                title: __('Fetch Documents from SEFAZ'),
+                fields: [
+                    {
+                        fieldname: 'company_settings',
+                        fieldtype: 'Select',
+                        label: __('Company'),
+                        reqd: 1,
+                        options: company_options.map(c => c.value).join('\n'),
+                        description: __('Select the company to fetch documents for')
+                    },
+                    {
+                        fieldname: 'document_type',
+                        fieldtype: 'Select',
+                        label: __('Document Type'),
+                        options: '\nNF-e\nCT-e\nNFS-e',
+                        description: __('Leave empty to fetch all enabled types')
+                    },
+                    {
+                        fieldname: 'info_section',
+                        fieldtype: 'Section Break',
+                        label: __('Company Info')
+                    },
+                    {
+                        fieldname: 'company_info',
+                        fieldtype: 'HTML',
+                        options: '<div id="company-info-display"></div>'
+                    }
+                ],
+                primary_action_label: __('Fetch'),
+                primary_action: function(values) {
+                    dialog.hide();
+
+                    frappe.call({
+                        method: 'brazil_nf.api.fetch_for_company',
+                        args: {
+                            company_settings_name: values.company_settings,
+                            document_type: values.document_type || null
+                        },
+                        freeze: true,
+                        freeze_message: __('Fetching documents from SEFAZ...'),
+                        callback: function(r) {
+                            if (r.message) {
+                                show_fetch_results(r.message);
+                                if (listview) {
+                                    listview.refresh();
+                                }
+                            }
+                        },
+                        error: function(r) {
+                            frappe.msgprint({
+                                title: __('Fetch Error'),
+                                message: __('Failed to fetch documents. Check the error log for details.'),
+                                indicator: 'red'
+                            });
+                        }
+                    });
+                }
+            });
+
+            // Update company info when selection changes
+            dialog.fields_dict.company_settings.$input.on('change', function() {
+                const selected = dialog.get_value('company_settings');
+                const company = companies.find(c => c.name === selected);
+                if (company) {
+                    const env_badge = company.sefaz_environment === 'Homologation'
+                        ? '<span class="badge badge-warning">Homologação</span>'
+                        : '<span class="badge badge-success">Produção</span>';
+
+                    const html = `
+                        <div class="company-info-card" style="padding: 10px; background: var(--bg-light-gray); border-radius: 4px;">
+                            <p><strong>CNPJ:</strong> ${company.cnpj || '-'}</p>
+                            <p><strong>Ambiente:</strong> ${env_badge}</p>
+                            <p><strong>Último NSU (NFS-e):</strong> ${company.last_nsu_nfse || '0'}</p>
+                            <p><strong>Última Sincronização:</strong> ${company.last_sync ? frappe.datetime.str_to_user(company.last_sync) : 'Nunca'}</p>
+                        </div>
+                    `;
+                    dialog.$wrapper.find('#company-info-display').html(html);
+                }
+            });
+
+            dialog.show();
+
+            // Trigger change to show first company info
+            if (companies.length > 0) {
+                dialog.set_value('company_settings', companies[0].name);
+                dialog.fields_dict.company_settings.$input.trigger('change');
+            }
+        }
+    });
+}
+
+function show_test_connection_dialog() {
+    frappe.call({
+        method: 'brazil_nf.api.get_enabled_companies',
+        callback: function(r) {
+            if (!r.message || r.message.length === 0) {
+                frappe.msgprint({
+                    title: __('No Companies Configured'),
+                    message: __('Please configure at least one company with a valid certificate.'),
+                    indicator: 'orange'
+                });
+                return;
+            }
+
+            const companies = r.message;
+
+            const dialog = new frappe.ui.Dialog({
+                title: __('Test SEFAZ Connection'),
+                fields: [
+                    {
+                        fieldname: 'company_settings',
+                        fieldtype: 'Select',
+                        label: __('Company'),
+                        reqd: 1,
+                        options: companies.map(c => c.name).join('\n')
+                    }
+                ],
+                primary_action_label: __('Test'),
+                primary_action: function(values) {
+                    frappe.call({
+                        method: 'brazil_nf.api.test_company_connection',
+                        args: {
+                            company_settings_name: values.company_settings
+                        },
+                        freeze: true,
+                        freeze_message: __('Testing connection...'),
+                        callback: function(r) {
+                            dialog.hide();
+                            if (r.message) {
+                                const result = r.message;
+                                let msg = result.message || 'Test completed';
+                                if (result.environment) {
+                                    msg += `<br><br><b>Ambiente:</b> ${result.environment}`;
+                                }
+                                if (result.endpoint) {
+                                    msg += `<br><b>Endpoint:</b> <code>${result.endpoint}</code>`;
+                                }
+                                frappe.msgprint({
+                                    title: __('Connection Test'),
+                                    message: msg,
+                                    indicator: result.status === 'success' ? 'green' : 'red'
+                                });
+                            }
+                        }
+                    });
+                }
+            });
+
+            dialog.show();
+        }
+    });
+}
+
+function show_fetch_results(results) {
+    let msg = '';
+    let has_error = false;
+    let has_rate_limit = false;
+
+    for (let doc_type in results) {
+        const result = results[doc_type];
+        msg += `<b>${doc_type}:</b><br>`;
+
+        if (result.status === 'error') {
+            has_error = true;
+            msg += `&nbsp;&nbsp;<span style="color:red">Error: ${result.message}</span><br>`;
+        } else if (result.status === 'rate_limited') {
+            has_rate_limit = true;
+            msg += `&nbsp;&nbsp;<span style="color:orange">⏳ Rate Limited - Wait ${result.wait_minutes} minutes</span><br>`;
+        } else {
+            msg += `&nbsp;&nbsp;Fetched: ${result.fetched || 0}, Created: ${result.created || 0}`;
+            if (result.events) {
+                msg += `, Events: ${result.events}`;
+            }
+            msg += '<br>';
+
+            if (result.sefaz_status) {
+                msg += `&nbsp;&nbsp;SEFAZ Status: ${result.sefaz_status}<br>`;
+            }
+            if (result.nsu_used !== undefined) {
+                msg += `&nbsp;&nbsp;NSU Used: ${result.nsu_used}<br>`;
+            }
+        }
+
+        if (result.environment) {
+            msg += `&nbsp;&nbsp;Ambiente: ${result.environment}<br>`;
+        }
+        msg += '<br>';
+    }
+
+    frappe.msgprint({
+        title: __('Fetch Results'),
+        message: msg,
+        indicator: has_error ? 'red' : (has_rate_limit ? 'orange' : 'green')
+    });
+}

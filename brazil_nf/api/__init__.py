@@ -106,3 +106,54 @@ def validate_chave_acesso(chave):
         "valid": is_valid,
         "components": components
     }
+
+
+@frappe.whitelist()
+def get_enabled_companies():
+    """
+    Get list of companies with valid certificates for SEFAZ integration.
+
+    Returns:
+        list: List of company settings with sync info
+    """
+    companies = frappe.get_all(
+        "NF Company Settings",
+        filters={"certificate_valid": 1},
+        fields=[
+            "name", "company", "cnpj", "sync_enabled",
+            "last_nsu_nfse", "last_sync", "sefaz_environment"
+        ]
+    )
+
+    return companies
+
+
+@frappe.whitelist()
+def test_company_connection(company_settings_name):
+    """
+    Test SEFAZ connection for a specific company.
+
+    Args:
+        company_settings_name: Name of NF Company Settings document
+
+    Returns:
+        dict: Test result
+    """
+    from brazil_nf.services.dfe_client import test_sefaz_connection
+    return test_sefaz_connection(company_settings_name)
+
+
+@frappe.whitelist()
+def fetch_for_company(company_settings_name, document_type=None):
+    """
+    Fetch documents from SEFAZ for a specific company.
+
+    Args:
+        company_settings_name: Name of NF Company Settings document
+        document_type: Optional specific document type
+
+    Returns:
+        dict: Fetch results
+    """
+    from brazil_nf.services.dfe_client import fetch_documents_for_company
+    return fetch_documents_for_company(company_settings_name, document_type)
