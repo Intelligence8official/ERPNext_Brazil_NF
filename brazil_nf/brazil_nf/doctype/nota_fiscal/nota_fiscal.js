@@ -180,31 +180,8 @@ frappe.ui.form.on('Nota Fiscal', {
             }
         }
 
-        // Add status indicators (clear first to avoid duplicates)
-        // Remove existing custom indicators
-        frm.dashboard.stats_area && frm.dashboard.stats_area.find('.indicator-pill').remove();
-        frm.dashboard.stats_area_row && frm.dashboard.stats_area_row.find('.indicator-pill').remove();
-
-        // Also try clearing via the data object
-        if (frm.dashboard.data && frm.dashboard.data.indicator) {
-            frm.dashboard.data.indicator = [];
-        }
-
-        // Set headline with status info instead of using indicators
-        let status_html = '';
-        if (frm.doc.supplier_status) {
-            status_html += `<span class="indicator-pill ${get_status_color(frm.doc.supplier_status)}">${__('Supplier')}: ${__(frm.doc.supplier_status)}</span> `;
-        }
-        if (frm.doc.item_creation_status) {
-            status_html += `<span class="indicator-pill ${get_status_color(frm.doc.item_creation_status)}">${__('Items')}: ${__(frm.doc.item_creation_status)}</span> `;
-        }
-        if (frm.doc.po_status) {
-            status_html += `<span class="indicator-pill ${get_status_color(frm.doc.po_status)}">${__('PO')}: ${__(frm.doc.po_status)}</span> `;
-        }
-
-        if (status_html) {
-            frm.dashboard.set_headline(status_html);
-        }
+        // Add status section using custom HTML to avoid duplication
+        show_processing_stats(frm);
     },
 
     document_type: function(frm) {
@@ -251,4 +228,68 @@ function get_status_color(status) {
         'Submitted': 'green'
     };
     return colors[status] || 'gray';
+}
+
+function show_processing_stats(frm) {
+    // Remove previous stats section if exists
+    frm.fields_dict.identification_section.$wrapper.find('.nf-stats-section').remove();
+
+    // Build stats HTML
+    let stats_html = `
+        <div class="nf-stats-section" style="margin-bottom: 15px; padding: 10px; background: var(--bg-light-gray); border-radius: 4px;">
+            <div style="font-weight: 500; margin-bottom: 8px;">${__('Processing Status')}</div>
+            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+    `;
+
+    // Supplier status
+    if (frm.doc.supplier_status) {
+        stats_html += `
+            <div>
+                <span class="indicator-pill ${get_status_color(frm.doc.supplier_status)}">
+                    ${__('Supplier')}: ${__(frm.doc.supplier_status)}
+                </span>
+            </div>
+        `;
+    }
+
+    // Items status
+    if (frm.doc.item_creation_status) {
+        stats_html += `
+            <div>
+                <span class="indicator-pill ${get_status_color(frm.doc.item_creation_status)}">
+                    ${__('Items')}: ${__(frm.doc.item_creation_status)}
+                </span>
+            </div>
+        `;
+    }
+
+    // PO status
+    if (frm.doc.po_status) {
+        stats_html += `
+            <div>
+                <span class="indicator-pill ${get_status_color(frm.doc.po_status)}">
+                    ${__('PO')}: ${__(frm.doc.po_status)}
+                </span>
+            </div>
+        `;
+    }
+
+    // Invoice status
+    if (frm.doc.invoice_status && frm.doc.invoice_status !== 'Pending') {
+        stats_html += `
+            <div>
+                <span class="indicator-pill ${get_status_color(frm.doc.invoice_status)}">
+                    ${__('Invoice')}: ${__(frm.doc.invoice_status)}
+                </span>
+            </div>
+        `;
+    }
+
+    stats_html += `
+            </div>
+        </div>
+    `;
+
+    // Insert after the section break
+    frm.fields_dict.identification_section.$wrapper.prepend(stats_html);
 }
