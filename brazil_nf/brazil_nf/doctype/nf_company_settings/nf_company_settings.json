@@ -12,6 +12,7 @@
   "column_break_company",
   "inscricao_estadual",
   "inscricao_municipal",
+  "sefaz_environment",
   "certificate_section",
   "certificate_file",
   "certificate_password",
@@ -70,6 +71,13 @@
    "fieldtype": "Data",
    "label": "Inscricao Municipal (IM)",
    "description": "Municipal Registration"
+  },
+  {
+   "fieldname": "sefaz_environment",
+   "fieldtype": "Select",
+   "label": "SEFAZ Environment",
+   "options": "\nProduction\nHomologation",
+   "description": "Leave empty to use global setting. Production = real data, Homologation = testing"
   },
   {
    "fieldname": "certificate_section",

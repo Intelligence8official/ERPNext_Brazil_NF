@@ -111,7 +111,7 @@ SEFAZ_ENDPOINTS = {
     },
     "nfse": {
         "production": "https://adn.nfse.gov.br/contribuintes/DFe",
-        "homologation": "https://adn.nfse.gov.br/contribuintes/DFe"
+        "homologation": "https://adn.producaorestrita.nfse.gov.br/contribuintes/DFe"
     }
 }
 
@@ -171,6 +171,10 @@ def fetch_documents_for_company(company_settings_name, document_type=None):
 
     results = {}
 
+    # Get environment for display
+    env = _get_sefaz_environment(company_settings, settings)
+    env_display = "Produção" if env == "production" else "Homologação"
+
     for doc_type in doc_types:
         # Check rate limit before fetching
         allowed, wait_minutes, rate_limit_msg = _check_rate_limit(company_settings, doc_type)
@@ -195,6 +199,7 @@ def fetch_documents_for_company(company_settings_name, document_type=None):
 
         try:
             result = _fetch_documents(company_settings, doc_type, settings, log)
+            result["environment"] = env_display  # Add environment to result
             results[doc_type] = result
 
             # Update rate limit tracking (uses direct DB update)
@@ -204,17 +209,36 @@ def fetch_documents_for_company(company_settings_name, document_type=None):
             log.mark_completed("Success" if result["created"] > 0 else "Partial")
         except Exception as e:
             log.mark_failed(str(e))
-            results[doc_type] = {"status": "error", "message": str(e)}
+            results[doc_type] = {"status": "error", "message": str(e), "environment": env_display}
 
     return results
+
+
+def _get_sefaz_environment(company_settings, global_settings):
+    """
+    Get SEFAZ environment, prioritizing company-level setting over global.
+
+    Returns:
+        str: 'production' or 'homologation'
+    """
+    # Company-level setting takes priority
+    if company_settings.sefaz_environment:
+        return company_settings.sefaz_environment.lower()
+
+    # Fall back to global setting
+    if global_settings.sefaz_environment:
+        return global_settings.sefaz_environment.lower()
+
+    # Default to production
+    return "production"
 
 
 def _fetch_documents(company_settings, document_type, settings, log):
     """
     Internal function to fetch documents of a specific type.
     """
-    # Get endpoint
-    env = settings.sefaz_environment.lower() if settings.sefaz_environment else "production"
+    # Get endpoint - company setting takes priority over global
+    env = _get_sefaz_environment(company_settings, settings)
     doc_type_key = document_type.lower().replace("-", "")
 
     if doc_type_key not in SEFAZ_ENDPOINTS:
@@ -420,7 +444,9 @@ def test_sefaz_connection(company_settings_name):
     company_settings = frappe.get_doc("NF Company Settings", company_settings_name)
     settings = frappe.get_single("Nota Fiscal Settings")
 
-    env = settings.sefaz_environment.lower() if settings.sefaz_environment else "production"
+    # Get environment - company setting takes priority
+    env = _get_sefaz_environment(company_settings, settings)
+    env_display = "Produção" if env == "production" else "Homologação"
 
     # Test NFS-e endpoint (simplest)
     endpoint = SEFAZ_ENDPOINTS["nfse"][env]
@@ -438,12 +464,15 @@ def test_sefaz_connection(company_settings_name):
             return {
                 "status": "success",
                 "http_code": response.status_code,
-                "message": _("Connection successful")
+                "message": _("Connection successful"),
+                "environment": env_display,
+                "endpoint": endpoint
             }
         except requests.exceptions.SSLError as e:
             return {
                 "status": "error",
-                "message": _("SSL Error: Certificate may be invalid")
+                "message": _("SSL Error: Certificate may be invalid"),
+                "environment": env_display
             }
         except Exception as e:
             return {

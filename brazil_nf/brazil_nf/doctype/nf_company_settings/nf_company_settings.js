@@ -16,10 +16,17 @@ frappe.ui.form.on('NF Company Settings', {
                     freeze_message: __('Testing connection to SEFAZ...'),
                     callback: function(r) {
                         if (r.message) {
+                            let msg = r.message.message || JSON.stringify(r.message);
+                            if (r.message.environment) {
+                                msg += `<br><br><b>Ambiente:</b> ${r.message.environment}`;
+                            }
+                            if (r.message.endpoint) {
+                                msg += `<br><b>Endpoint:</b> <code>${r.message.endpoint}</code>`;
+                            }
                             frappe.msgprint({
                                 title: __('Connection Test'),
                                 indicator: r.message.success ? 'green' : 'red',
-                                message: r.message.message || JSON.stringify(r.message)
+                                message: msg
                             });
                         }
                     },
@@ -79,6 +86,9 @@ frappe.ui.form.on('NF Company Settings', {
                                         }
                                         if (result.message) {
                                             msg += `&nbsp;&nbsp;Message: ${result.message}<br>`;
+                                        }
+                                        if (result.environment) {
+                                            msg += `&nbsp;&nbsp;Ambiente: ${result.environment}<br>`;
                                         }
                                     }
                                 } else {
