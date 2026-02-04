@@ -71,8 +71,8 @@
    "fieldname": "fetch_interval_minutes",
    "fieldtype": "Int",
    "label": "Fetch Interval (minutes)",
-   "default": "10",
-   "description": "How often to check for new documents (minimum 5 minutes)"
+   "default": "60",
+   "description": "How often to check for new documents. WARNING: SEFAZ requires 1 hour wait when no documents found. Values below 60 may cause rate limiting (code 656)."
   },
   {
    "fieldname": "column_break_sefaz",

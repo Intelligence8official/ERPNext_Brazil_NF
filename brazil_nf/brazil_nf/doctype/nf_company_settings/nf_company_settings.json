@@ -24,7 +24,13 @@
   "last_nsu_nfse",
   "column_break_sync",
   "last_sync",
-  "sync_enabled"
+  "sync_enabled",
+  "rate_limit_section",
+  "last_empty_response_nfse",
+  "last_empty_response_nfe",
+  "last_empty_response_cte",
+  "column_break_rate",
+  "fetch_blocked_until"
  ],
  "fields": [
   {
@@ -140,6 +146,45 @@
    "label": "Sync Enabled",
    "default": "1",
    "description": "Enable automatic synchronization for this company"
+  },
+  {
+   "fieldname": "rate_limit_section",
+   "fieldtype": "Section Break",
+   "label": "Rate Limit Control",
+   "collapsible": 1,
+   "description": "SEFAZ requires 1 hour wait when no new documents. These fields track that."
+  },
+  {
+   "fieldname": "last_empty_response_nfse",
+   "fieldtype": "Datetime",
+   "label": "Last Empty Response (NFS-e)",
+   "read_only": 1,
+   "description": "When SEFAZ last returned no documents for NFS-e"
+  },
+  {
+   "fieldname": "last_empty_response_nfe",
+   "fieldtype": "Datetime",
+   "label": "Last Empty Response (NF-e)",
+   "read_only": 1,
+   "description": "When SEFAZ last returned no documents for NF-e"
+  },
+  {
+   "fieldname": "last_empty_response_cte",
+   "fieldtype": "Datetime",
+   "label": "Last Empty Response (CT-e)",
+   "read_only": 1,
+   "description": "When SEFAZ last returned no documents for CT-e"
+  },
+  {
+   "fieldname": "column_break_rate",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "fetch_blocked_until",
+   "fieldtype": "Datetime",
+   "label": "Fetch Blocked Until",
+   "read_only": 1,
+   "description": "If set, fetching is blocked until this time (due to SEFAZ rate limit)"
   }
  ],
  "links": [

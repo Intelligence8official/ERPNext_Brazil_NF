@@ -55,11 +55,22 @@ frappe.ui.form.on('NF Company Settings', {
                         callback: function(r) {
                             if (r.message) {
                                 let msg = '';
+                                let hasRateLimit = false;
                                 if (typeof r.message === 'object') {
                                     for (let key in r.message) {
                                         let result = r.message[key];
                                         msg += `<b>${key}:</b><br>`;
-                                        msg += `&nbsp;&nbsp;Fetched: ${result.fetched || 0}, Created: ${result.created || 0}<br>`;
+
+                                        if (result.status === 'rate_limited') {
+                                            hasRateLimit = true;
+                                            msg += `&nbsp;&nbsp;<span style="color:orange">⏳ Rate Limited</span><br>`;
+                                            if (result.wait_minutes) {
+                                                msg += `&nbsp;&nbsp;Wait ${result.wait_minutes} minutes before next fetch<br>`;
+                                            }
+                                        } else {
+                                            msg += `&nbsp;&nbsp;Fetched: ${result.fetched || 0}, Created: ${result.created || 0}<br>`;
+                                        }
+
                                         if (result.sefaz_status) {
                                             msg += `&nbsp;&nbsp;SEFAZ Status: ${result.sefaz_status}<br>`;
                                         }
@@ -75,7 +86,7 @@ frappe.ui.form.on('NF Company Settings', {
                                 }
                                 frappe.msgprint({
                                     title: __('Fetch Results'),
-                                    indicator: 'green',
+                                    indicator: hasRateLimit ? 'orange' : 'green',
                                     message: msg
                                 });
                                 frm.reload_doc();

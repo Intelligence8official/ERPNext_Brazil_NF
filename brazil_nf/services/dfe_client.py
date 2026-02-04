@@ -8,13 +8,84 @@ Adapted from NFSe_WebMonitor/nfse_client.py.
 import gzip
 import base64
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import frappe
 from frappe import _
+from frappe.utils import now_datetime, get_datetime
+
+# SEFAZ rate limit: must wait 1 hour when no new documents
+SEFAZ_WAIT_HOURS = 1
 
 from brazil_nf.services.cert_utils import CertificateContext
 from brazil_nf.services.xml_parser import NFXMLParser
+
+
+def _check_rate_limit(company_settings, document_type):
+    """
+    Check if fetching is allowed based on SEFAZ rate limits.
+
+    SEFAZ requires waiting 1 hour after receiving an empty response
+    (no new documents) before making another request.
+
+    Returns:
+        tuple: (allowed: bool, wait_minutes: int, message: str)
+    """
+    field_map = {
+        "NF-e": "last_empty_response_nfe",
+        "CT-e": "last_empty_response_cte",
+        "NFS-e": "last_empty_response_nfse"
+    }
+
+    field = field_map.get(document_type)
+    if not field:
+        return True, 0, ""
+
+    last_empty = getattr(company_settings, field, None)
+    if not last_empty:
+        return True, 0, ""
+
+    last_empty_dt = get_datetime(last_empty)
+    wait_until = last_empty_dt + timedelta(hours=SEFAZ_WAIT_HOURS)
+    now = now_datetime()
+
+    if now < wait_until:
+        wait_minutes = int((wait_until - now).total_seconds() / 60)
+        return False, wait_minutes, _(
+            "SEFAZ rate limit: must wait {0} more minutes. "
+            "Last empty response was at {1}."
+        ).format(wait_minutes, last_empty_dt.strftime("%H:%M:%S"))
+
+    return True, 0, ""
+
+
+def _update_rate_limit(company_settings, document_type, had_documents):
+    """
+    Update rate limit tracking after a fetch.
+
+    If no documents were returned, record the time so we know to wait 1 hour.
+    If documents were returned, clear the empty response time.
+    """
+    field_map = {
+        "NF-e": "last_empty_response_nfe",
+        "CT-e": "last_empty_response_cte",
+        "NFS-e": "last_empty_response_nfse"
+    }
+
+    field = field_map.get(document_type)
+    if not field:
+        return
+
+    if had_documents:
+        # Clear the empty response time - we got documents
+        setattr(company_settings, field, None)
+    else:
+        # Record that we got an empty response - must wait 1 hour
+        setattr(company_settings, field, now_datetime())
+        frappe.logger().info(
+            f"SEFAZ rate limit: No documents for {document_type}. "
+            f"Must wait {SEFAZ_WAIT_HOURS} hour(s) before next fetch."
+        )
 
 
 # SEFAZ DF-e Distribution endpoints
@@ -90,6 +161,21 @@ def fetch_documents_for_company(company_settings_name, document_type=None):
     results = {}
 
     for doc_type in doc_types:
+        # Check rate limit before fetching
+        allowed, wait_minutes, rate_limit_msg = _check_rate_limit(company_settings, doc_type)
+
+        if not allowed:
+            frappe.logger().info(f"Skipping {doc_type} fetch: {rate_limit_msg}")
+            results[doc_type] = {
+                "status": "rate_limited",
+                "fetched": 0,
+                "created": 0,
+                "skipped": 0,
+                "message": rate_limit_msg,
+                "wait_minutes": wait_minutes
+            }
+            continue
+
         log = create_import_log(
             company_settings.company,
             doc_type,
@@ -99,6 +185,12 @@ def fetch_documents_for_company(company_settings_name, document_type=None):
         try:
             result = _fetch_documents(company_settings, doc_type, settings, log)
             results[doc_type] = result
+
+            # Update rate limit tracking
+            had_documents = result.get("fetched", 0) > 0
+            _update_rate_limit(company_settings, doc_type, had_documents)
+            company_settings.save(ignore_permissions=True)
+
             log.mark_completed("Success" if result["created"] > 0 else "Partial")
         except Exception as e:
             log.mark_failed(str(e))
