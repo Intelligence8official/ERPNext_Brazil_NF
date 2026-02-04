@@ -1,11 +1,10 @@
 #!/bin/bash
 #
-# Brazil NF - Script de Atualização
+# Brazil NF - Script de Atualização (executa DENTRO do container)
 # Uso: ./update_brazil_nf.sh [opções]
 #
 # Opções:
 #   --no-migrate    Pular migração do banco de dados
-#   --no-restart    Pular reinício dos workers
 #   --build         Recompilar assets (JS/CSS)
 #
 
@@ -25,7 +24,6 @@ SITE_NAME="frontend"
 
 # Flags
 DO_MIGRATE=true
-DO_RESTART=true
 DO_BUILD=false
 
 # Parse argumentos
@@ -33,9 +31,6 @@ for arg in "$@"; do
     case $arg in
         --no-migrate)
             DO_MIGRATE=false
-            ;;
-        --no-restart)
-            DO_RESTART=false
             ;;
         --build)
             DO_BUILD=true
@@ -45,7 +40,6 @@ for arg in "$@"; do
             echo ""
             echo "Opções:"
             echo "  --no-migrate    Pular migração do banco de dados"
-            echo "  --no-restart    Pular reinício dos workers"
             echo "  --build         Recompilar assets (JS/CSS)"
             echo "  --help          Mostrar esta ajuda"
             exit 0
@@ -65,8 +59,10 @@ if [ ! -d "$APP_PATH" ]; then
     exit 1
 fi
 
+cd "$BENCH_PATH"
+
 # 1. Atualizar código
-echo -e "${YELLOW}[1/4] Atualizando código do repositório...${NC}"
+echo -e "${YELLOW}[1/6] Atualizando código do repositório...${NC}"
 cd "$APP_PATH"
 
 # Verificar se há mudanças locais
@@ -85,56 +81,53 @@ fi
 
 echo -e "${GREEN}      Código atualizado!${NC}"
 
-# 2. Migrar banco de dados
+# 2. Garantir que brazil_nf está no apps.txt
+echo -e "${YELLOW}[2/6] Verificando apps.txt...${NC}"
+cd "$BENCH_PATH"
+
+if grep -q "brazil_nf" sites/apps.txt; then
+    echo -e "${GREEN}      brazil_nf já está em apps.txt${NC}"
+else
+    echo -e "${YELLOW}      Adicionando brazil_nf ao apps.txt...${NC}"
+    echo "brazil_nf" >> sites/apps.txt
+    echo -e "${GREEN}      Adicionado!${NC}"
+fi
+
+# 3. Reinstalar app com --force
+echo -e "${YELLOW}[3/6] Reinstalando app (--force)...${NC}"
+bench --site "$SITE_NAME" install-app brazil_nf --force
+echo -e "${GREEN}      App reinstalado!${NC}"
+
+# 4. Migrar banco de dados
 if [ "$DO_MIGRATE" = true ]; then
-    echo -e "${YELLOW}[2/4] Migrando banco de dados...${NC}"
-    cd "$BENCH_PATH"
+    echo -e "${YELLOW}[4/6] Migrando banco de dados...${NC}"
     bench --site "$SITE_NAME" migrate
     echo -e "${GREEN}      Migração concluída!${NC}"
 else
-    echo -e "${BLUE}[2/4] Migração pulada (--no-migrate)${NC}"
+    echo -e "${BLUE}[4/6] Migração pulada (--no-migrate)${NC}"
 fi
 
-# 3. Build assets (opcional)
+# 5. Build assets (opcional)
 if [ "$DO_BUILD" = true ]; then
-    echo -e "${YELLOW}[3/4] Recompilando assets...${NC}"
-    cd "$BENCH_PATH"
+    echo -e "${YELLOW}[5/6] Recompilando assets...${NC}"
     bench build --app brazil_nf
     echo -e "${GREEN}      Assets recompilados!${NC}"
 else
-    echo -e "${BLUE}[3/4] Build pulado (use --build para recompilar)${NC}"
+    echo -e "${BLUE}[5/6] Build pulado (use --build para recompilar)${NC}"
 fi
 
-# 4. Reiniciar workers
-if [ "$DO_RESTART" = true ]; then
-    echo -e "${YELLOW}[4/4] Reiniciando workers...${NC}"
-    cd "$BENCH_PATH"
-
-    # Tentar diferentes métodos de restart
-    if command -v supervisorctl &> /dev/null; then
-        echo -e "${BLUE}      Usando supervisorctl...${NC}"
-        supervisorctl restart frappe: 2>/dev/null || supervisorctl restart all 2>/dev/null || true
-    elif [ -f "/etc/supervisor/conf.d/frappe.conf" ]; then
-        echo -e "${BLUE}      Usando supervisor service...${NC}"
-        service supervisor restart 2>/dev/null || true
-    else
-        echo -e "${BLUE}      Usando bench restart...${NC}"
-        bench restart 2>/dev/null || true
-    fi
-
-    # Em Docker, às vezes só precisa limpar cache
-    echo -e "${BLUE}      Limpando cache...${NC}"
-    bench --site "$SITE_NAME" clear-cache 2>/dev/null || true
-
-    echo -e "${GREEN}      Workers reiniciados!${NC}"
-else
-    echo -e "${BLUE}[4/4] Reinício pulado (--no-restart)${NC}"
-fi
+# 6. Limpar cache
+echo -e "${YELLOW}[6/6] Limpando cache...${NC}"
+bench --site "$SITE_NAME" clear-cache
+echo -e "${GREEN}      Cache limpo!${NC}"
 
 echo ""
 echo -e "${GREEN}========================================${NC}"
-echo -e "${GREEN}   Atualização concluída com sucesso!${NC}"
+echo -e "${GREEN}   Atualização concluída!${NC}"
 echo -e "${GREEN}========================================${NC}"
+echo ""
+echo -e "${YELLOW}IMPORTANTE: Reinicie os containers Docker:${NC}"
+echo -e "${BLUE}   docker compose restart${NC}"
 echo ""
 
 # Mostrar versão atual
