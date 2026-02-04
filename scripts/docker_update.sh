@@ -39,7 +39,8 @@ docker exec -it "$CONTAINER_NAME" bash -c "
         echo 'Script de update não encontrado. Executando comandos manualmente...'
         cd /home/frappe/frappe-bench/apps/brazil_nf && git pull
         cd /home/frappe/frappe-bench && bench --site frontend migrate
-        supervisorctl restart frappe:
+        bench --site frontend clear-cache
         echo 'Atualização concluída!'
+        echo 'NOTA: Reinicie o container Docker para aplicar mudanças de código Python'
     fi
 "

@@ -108,11 +108,24 @@ fi
 # 4. Reiniciar workers
 if [ "$DO_RESTART" = true ]; then
     echo -e "${YELLOW}[4/4] Reiniciando workers...${NC}"
-    supervisorctl restart frappe: || {
-        echo -e "${YELLOW}      supervisorctl falhou, tentando alternativa...${NC}"
-        cd "$BENCH_PATH"
-        bench restart || true
-    }
+    cd "$BENCH_PATH"
+
+    # Tentar diferentes métodos de restart
+    if command -v supervisorctl &> /dev/null; then
+        echo -e "${BLUE}      Usando supervisorctl...${NC}"
+        supervisorctl restart frappe: 2>/dev/null || supervisorctl restart all 2>/dev/null || true
+    elif [ -f "/etc/supervisor/conf.d/frappe.conf" ]; then
+        echo -e "${BLUE}      Usando supervisor service...${NC}"
+        service supervisor restart 2>/dev/null || true
+    else
+        echo -e "${BLUE}      Usando bench restart...${NC}"
+        bench restart 2>/dev/null || true
+    fi
+
+    # Em Docker, às vezes só precisa limpar cache
+    echo -e "${BLUE}      Limpando cache...${NC}"
+    bench --site "$SITE_NAME" clear-cache 2>/dev/null || true
+
     echo -e "${GREEN}      Workers reiniciados!${NC}"
 else
     echo -e "${BLUE}[4/4] Reinício pulado (--no-restart)${NC}"
