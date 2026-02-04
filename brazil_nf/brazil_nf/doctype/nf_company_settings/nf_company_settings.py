@@ -136,20 +136,31 @@ class NFCompanySettings(Document):
         }
 
         field = field_map.get(document_type)
-        if field:
+        if field and nsu:
+            nsu_str = str(nsu)
+            sync_time = now_datetime()
+
+            frappe.logger().info(f"Updating {field} from {getattr(self, field, '0')} to {nsu_str}")
+
             # Use direct DB update to avoid document modification conflicts
             frappe.db.set_value(
                 "NF Company Settings",
                 self.name,
                 {
-                    field: str(nsu),
-                    "last_sync": now_datetime()
+                    field: nsu_str,
+                    "last_sync": sync_time
                 },
                 update_modified=False
             )
+
+            # Commit immediately to ensure persistence
+            frappe.db.commit()
+
             # Update local attributes for consistency
-            setattr(self, field, str(nsu))
-            self.last_sync = now_datetime()
+            setattr(self, field, nsu_str)
+            self.last_sync = sync_time
+
+            frappe.logger().info(f"NSU updated successfully: {field} = {nsu_str}")
 
     def get_last_nsu(self, document_type):
         """Get the last NSU for a document type."""

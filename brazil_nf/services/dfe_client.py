@@ -342,9 +342,22 @@ def _fetch_nfse_documents(endpoint, cert_path, key_path, last_nsu, company_setti
             log.update_counts(failed=1)
 
     # Update company settings with last NSU
+    max_nsu = last_nsu
     if documents:
-        last_doc = documents[-1]
-        company_settings.update_last_nsu("NFS-e", last_doc.get("NSU", last_nsu))
+        # Find the highest NSU from all documents
+        for doc in documents:
+            doc_nsu = doc.get("NSU")
+            if doc_nsu:
+                try:
+                    doc_nsu_int = int(doc_nsu)
+                    if doc_nsu_int > int(max_nsu or 0):
+                        max_nsu = str(doc_nsu_int)
+                except (ValueError, TypeError):
+                    pass
+
+        frappe.logger().info(f"NFS-e Fetch: Updating NSU from {last_nsu} to {max_nsu}")
+        company_settings.update_last_nsu("NFS-e", max_nsu)
+        frappe.db.commit()  # Ensure commit
 
     log.update_counts(fetched=len(documents), created=created, skipped=skipped)
 
