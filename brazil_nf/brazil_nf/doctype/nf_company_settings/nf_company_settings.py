@@ -37,27 +37,45 @@ class NFCompanySettings(Document):
 
     def validate_certificate(self):
         """Validate the uploaded certificate."""
-        if self.certificate_file and self.certificate_password:
-            try:
-                from brazil_nf.services.cert_utils import validate_pfx_certificate
-
-                expiry = validate_pfx_certificate(
-                    self.certificate_file,
-                    self.certificate_password
-                )
-
-                self.certificate_expiry = expiry
-                self.certificate_valid = 1
-
-            except Exception as e:
-                self.certificate_valid = 0
-                frappe.msgprint(
-                    _("Certificate validation failed: {0}").format(str(e)),
-                    indicator="red",
-                    alert=True
-                )
-        else:
+        # If no certificate file, clear all certificate-related fields
+        if not self.certificate_file:
             self.certificate_valid = 0
+            self.certificate_expiry = None
+            self.certificate_password = ""
+            return
+
+        # If certificate file exists but no password, mark as invalid
+        if not self.certificate_password:
+            self.certificate_valid = 0
+            self.certificate_expiry = None
+            return
+
+        # Try to validate the certificate
+        try:
+            from brazil_nf.services.cert_utils import validate_pfx_certificate
+
+            expiry = validate_pfx_certificate(
+                self.certificate_file,
+                self.certificate_password
+            )
+
+            self.certificate_expiry = expiry
+            self.certificate_valid = 1
+
+            frappe.msgprint(
+                _("Certificate validated successfully. Expires on {0}").format(expiry),
+                indicator="green",
+                alert=True
+            )
+
+        except Exception as e:
+            self.certificate_valid = 0
+            self.certificate_expiry = None
+            frappe.msgprint(
+                _("Certificate validation failed: {0}").format(str(e)),
+                indicator="red",
+                alert=True
+            )
 
     @frappe.whitelist()
     def test_connection(self):
@@ -127,3 +145,76 @@ def get_all_enabled_companies():
         filters={"sync_enabled": 1, "certificate_valid": 1},
         fields=["name", "company", "cnpj"]
     )
+
+
+@frappe.whitelist()
+def test_connection(company_settings_name):
+    """
+    Test connection to SEFAZ using company's certificate.
+
+    Args:
+        company_settings_name: Name of NF Company Settings document
+
+    Returns:
+        dict: Test result with success flag and message
+    """
+    doc = frappe.get_doc("NF Company Settings", company_settings_name)
+
+    if not doc.certificate_valid:
+        return {
+            "success": False,
+            "message": _("Certificate is not valid. Please upload a valid certificate and save.")
+        }
+
+    if not doc.certificate_file:
+        return {
+            "success": False,
+            "message": _("No certificate file uploaded.")
+        }
+
+    try:
+        from brazil_nf.services.dfe_client import test_sefaz_connection
+        result = test_sefaz_connection(company_settings_name)
+
+        return {
+            "success": result.get("status") == "success",
+            "message": result.get("message", _("Connection test completed"))
+        }
+    except Exception as e:
+        frappe.log_error(str(e), "SEFAZ Connection Test Error")
+        return {
+            "success": False,
+            "message": _("Connection test failed: {0}").format(str(e))
+        }
+
+
+@frappe.whitelist()
+def fetch_documents(company_settings_name, document_type=None):
+    """
+    Fetch documents from SEFAZ for a company.
+
+    Args:
+        company_settings_name: Name of NF Company Settings document
+        document_type: Optional specific document type (NF-e, CT-e, NFS-e)
+
+    Returns:
+        dict: Fetch results
+    """
+    doc = frappe.get_doc("NF Company Settings", company_settings_name)
+
+    if not doc.certificate_valid:
+        frappe.throw(_("Certificate is not valid. Please upload a valid certificate."))
+
+    try:
+        from brazil_nf.services.dfe_client import fetch_documents_for_company
+
+        result = fetch_documents_for_company(company_settings_name, document_type)
+
+        # Update last sync time
+        doc.last_sync = now_datetime()
+        doc.save(ignore_permissions=True)
+
+        return result
+    except Exception as e:
+        frappe.log_error(str(e), "SEFAZ Fetch Error")
+        frappe.throw(_("Fetch failed: {0}").format(str(e)))
