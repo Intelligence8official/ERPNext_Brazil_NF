@@ -18,6 +18,77 @@ from cryptography.hazmat.primitives.serialization import (
 from cryptography import x509
 
 
+def resolve_frappe_file_path(file_url: str) -> str:
+    """
+    Resolve a Frappe file URL to an absolute file path.
+
+    Args:
+        file_url: File URL like /files/cert.pfx or /private/files/cert.pfx
+
+    Returns:
+        str: Absolute file path
+    """
+    if not file_url:
+        raise ValueError("File path is empty")
+
+    # If it's already an absolute path and exists, return it
+    if os.path.isabs(file_url) and os.path.exists(file_url):
+        return file_url
+
+    # Remove leading slash for path joining
+    clean_path = file_url.lstrip("/")
+
+    # Try different path resolutions
+    possible_paths = []
+
+    # Standard Frappe file paths
+    if clean_path.startswith("files/") or clean_path.startswith("private/files/"):
+        possible_paths.append(frappe.get_site_path(clean_path))
+
+    # If path starts with /files/ or /private/files/
+    if file_url.startswith("/files/"):
+        possible_paths.append(frappe.get_site_path("public", file_url[1:]))
+        possible_paths.append(frappe.get_site_path(file_url[1:]))
+
+    if file_url.startswith("/private/files/"):
+        possible_paths.append(frappe.get_site_path(file_url[1:]))
+
+    # Try to get from File doctype
+    try:
+        file_doc = frappe.get_doc("File", {"file_url": file_url})
+        if file_doc and file_doc.get_full_path():
+            possible_paths.insert(0, file_doc.get_full_path())
+    except Exception:
+        pass
+
+    # Try each possible path
+    for path in possible_paths:
+        if path and os.path.exists(path):
+            return path
+
+    # If nothing worked, raise an error with debug info
+    raise FileNotFoundError(
+        f"Could not resolve file path: {file_url}. "
+        f"Tried: {possible_paths}"
+    )
+
+
+def get_pfx_bytes_from_file(file_path: str) -> bytes:
+    """
+    Get PFX file content as bytes, handling Frappe file URLs.
+
+    Args:
+        file_path: File path or Frappe file URL
+
+    Returns:
+        bytes: PFX file content
+    """
+    resolved_path = resolve_frappe_file_path(file_path)
+
+    with open(resolved_path, "rb") as f:
+        return f.read()
+
+
 def extract_cert_and_key_from_pfx_bytes(pfx_bytes: bytes, password: str) -> tuple:
     """
     Extract certificate and private key from PFX bytes.
@@ -66,13 +137,7 @@ def extract_cert_and_key_from_file(file_path: str, password: str) -> tuple:
     Returns:
         tuple: (cert_path, key_path) - Paths to temporary PEM files
     """
-    # Handle Frappe file URLs
-    if file_path.startswith("/files/") or file_path.startswith("/private/files/"):
-        file_path = frappe.get_site_path(file_path.lstrip("/"))
-
-    with open(file_path, "rb") as f:
-        pfx_bytes = f.read()
-
+    pfx_bytes = get_pfx_bytes_from_file(file_path)
     return extract_cert_and_key_from_pfx_bytes(pfx_bytes, password)
 
 
@@ -90,17 +155,21 @@ def validate_pfx_certificate(file_path: str, password: str) -> str:
     Raises:
         ValueError: If certificate is invalid or expired
     """
-    # Handle Frappe file URLs
-    if file_path.startswith("/files/") or file_path.startswith("/private/files/"):
-        file_path = frappe.get_site_path(file_path.lstrip("/"))
+    pfx_bytes = get_pfx_bytes_from_file(file_path)
 
-    with open(file_path, "rb") as f:
-        pfx_bytes = f.read()
-
-    key, cert, _chain = load_key_and_certificates(
-        pfx_bytes,
-        password.encode("utf-8") if password else None
-    )
+    try:
+        key, cert, _chain = load_key_and_certificates(
+            pfx_bytes,
+            password.encode("utf-8") if password else None
+        )
+    except Exception as e:
+        error_msg = str(e).lower()
+        if "password" in error_msg or "mac" in error_msg or "pkcs12" in error_msg:
+            raise ValueError(
+                "Invalid password or the file is not a valid PFX/P12 certificate. "
+                "Please verify the password and ensure the file is a valid digital certificate."
+            )
+        raise
 
     if cert is None:
         raise ValueError("PFX does not contain a certificate")
@@ -134,17 +203,20 @@ def get_certificate_info(file_path: str, password: str) -> dict:
     Returns:
         dict: Certificate information
     """
-    # Handle Frappe file URLs
-    if file_path.startswith("/files/") or file_path.startswith("/private/files/"):
-        file_path = frappe.get_site_path(file_path.lstrip("/"))
+    pfx_bytes = get_pfx_bytes_from_file(file_path)
 
-    with open(file_path, "rb") as f:
-        pfx_bytes = f.read()
-
-    key, cert, chain = load_key_and_certificates(
-        pfx_bytes,
-        password.encode("utf-8") if password else None
-    )
+    try:
+        key, cert, chain = load_key_and_certificates(
+            pfx_bytes,
+            password.encode("utf-8") if password else None
+        )
+    except Exception as e:
+        error_msg = str(e).lower()
+        if "password" in error_msg or "mac" in error_msg or "pkcs12" in error_msg:
+            raise ValueError(
+                "Invalid password or the file is not a valid PFX/P12 certificate."
+            )
+        raise
 
     if cert is None:
         raise ValueError("PFX does not contain a certificate")
