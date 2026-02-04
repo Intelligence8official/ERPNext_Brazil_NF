@@ -181,25 +181,29 @@ frappe.ui.form.on('Nota Fiscal', {
         }
 
         // Add status indicators (clear first to avoid duplicates)
-        frm.dashboard.clear_headline();
+        // Remove existing custom indicators
+        frm.dashboard.stats_area && frm.dashboard.stats_area.find('.indicator-pill').remove();
+        frm.dashboard.stats_area_row && frm.dashboard.stats_area_row.find('.indicator-pill').remove();
 
+        // Also try clearing via the data object
+        if (frm.dashboard.data && frm.dashboard.data.indicator) {
+            frm.dashboard.data.indicator = [];
+        }
+
+        // Set headline with status info instead of using indicators
+        let status_html = '';
         if (frm.doc.supplier_status) {
-            frm.dashboard.add_indicator(
-                __('Supplier: {0}', [frm.doc.supplier_status]),
-                get_status_color(frm.doc.supplier_status)
-            );
+            status_html += `<span class="indicator-pill ${get_status_color(frm.doc.supplier_status)}">${__('Supplier')}: ${__(frm.doc.supplier_status)}</span> `;
         }
         if (frm.doc.item_creation_status) {
-            frm.dashboard.add_indicator(
-                __('Items: {0}', [frm.doc.item_creation_status]),
-                get_status_color(frm.doc.item_creation_status)
-            );
+            status_html += `<span class="indicator-pill ${get_status_color(frm.doc.item_creation_status)}">${__('Items')}: ${__(frm.doc.item_creation_status)}</span> `;
         }
         if (frm.doc.po_status) {
-            frm.dashboard.add_indicator(
-                __('PO: {0}', [frm.doc.po_status]),
-                get_status_color(frm.doc.po_status)
-            );
+            status_html += `<span class="indicator-pill ${get_status_color(frm.doc.po_status)}">${__('PO')}: ${__(frm.doc.po_status)}</span> `;
+        }
+
+        if (status_html) {
+            frm.dashboard.set_headline(status_html);
         }
     },
 
