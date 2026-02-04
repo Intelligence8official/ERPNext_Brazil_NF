@@ -5,9 +5,22 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 from frappe.utils import now_datetime
+from frappe.utils.password import get_decrypted_password
 
 
 class NFCompanySettings(Document):
+    def get_certificate_password(self):
+        """Get the decrypted certificate password."""
+        if not self.name or self.is_new():
+            # During creation, password is in plain text
+            return self.certificate_password
+
+        # For saved documents, decrypt the password
+        return get_decrypted_password(
+            "NF Company Settings",
+            self.name,
+            "certificate_password"
+        )
     def validate(self):
         """Validate company settings."""
         self.validate_cnpj()

@@ -126,8 +126,11 @@ def _fetch_documents(company_settings, document_type, settings, log):
     # Get last NSU
     last_nsu = company_settings.get_last_nsu(document_type)
 
+    # Get decrypted password
+    certificate_password = company_settings.get_certificate_password()
+
     # Use certificate context for automatic cleanup
-    with CertificateContext(company_settings.certificate_file, company_settings.certificate_password) as (cert_path, key_path):
+    with CertificateContext(company_settings.certificate_file, certificate_password) as (cert_path, key_path):
         # For NFS-e (REST API)
         if document_type == "NFS-e":
             return _fetch_nfse_documents(endpoint, cert_path, key_path, last_nsu, company_settings, log)
@@ -300,7 +303,10 @@ def test_sefaz_connection(company_settings_name):
     # Test NFS-e endpoint (simplest)
     endpoint = SEFAZ_ENDPOINTS["nfse"][env]
 
-    with CertificateContext(company_settings.certificate_file, company_settings.certificate_password) as (cert_path, key_path):
+    # Get decrypted password
+    certificate_password = company_settings.get_certificate_password()
+
+    with CertificateContext(company_settings.certificate_file, certificate_password) as (cert_path, key_path):
         session = requests.Session()
         session.cert = (cert_path, key_path)
 
