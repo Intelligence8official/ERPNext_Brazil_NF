@@ -63,13 +63,25 @@ class NFCompanySettings(Document):
             self.certificate_expiry = None
             return
 
+        # If certificate is already validated and we're not changing the password,
+        # skip re-validation to avoid issues with encrypted password
+        if self.certificate_valid and not self.has_value_changed("certificate_password") and not self.has_value_changed("certificate_file"):
+            return
+
+        # Get the password - during save it's plain text, otherwise decrypt
+        password = self.certificate_password
+        if not self.is_new() and self.name:
+            # Check if password was just changed (will be plain text) or is from DB (encrypted)
+            if not self.has_value_changed("certificate_password"):
+                password = self.get_certificate_password()
+
         # Try to validate the certificate
         try:
             from brazil_nf.services.cert_utils import validate_pfx_certificate
 
             expiry = validate_pfx_certificate(
                 self.certificate_file,
-                self.certificate_password
+                password
             )
 
             self.certificate_expiry = expiry
