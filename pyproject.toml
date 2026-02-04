@@ -10,8 +10,6 @@ requires-python = ">=3.10"
 readme = "README.md"
 
 dependencies = [
-    "frappe",
-    "erpnext",
     "cryptography>=46.0.0",
     "requests>=2.32.0",
 ]
