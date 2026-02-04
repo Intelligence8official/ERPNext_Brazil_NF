@@ -154,10 +154,28 @@ brazil_nf/
 bench --site seu-site run-tests --app brazil_nf
 ```
 
+## Contribuindo
+
+Contribuições são muito bem-vindas! Veja o arquivo [CONTRIBUTING.md](CONTRIBUTING.md) para diretrizes sobre como contribuir com o projeto.
+
+### Formas de Contribuir
+
+- 🐛 Reportar bugs
+- 💡 Sugerir novas funcionalidades
+- 📖 Melhorar a documentação
+- 🔧 Enviar Pull Requests
+- ⭐ Dar uma estrela no repositório
+
 ## Licença
 
 MIT
 
 ## Suporte
 
-Para reportar bugs ou solicitar funcionalidades, abra uma issue no repositório do projeto.
+Para reportar bugs ou solicitar funcionalidades, abra uma [issue](https://github.com/Intelligence8official/ERPNext_Brazil_NF/issues) no repositório do projeto.
+
+## Comunidade
+
+- [Issues](https://github.com/Intelligence8official/ERPNext_Brazil_NF/issues) - Reportar bugs e sugestões
+- [Discussions](https://github.com/Intelligence8official/ERPNext_Brazil_NF/discussions) - Dúvidas e discussões gerais
+- [Pull Requests](https://github.com/Intelligence8official/ERPNext_Brazil_NF/pulls) - Contribuições de código
