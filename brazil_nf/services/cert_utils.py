@@ -6,7 +6,7 @@ Adapted from NFSe_WebMonitor/cert_utils.py with additional validation.
 
 import tempfile
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 import frappe
 from cryptography.hazmat.primitives.serialization.pkcs12 import load_key_and_certificates
@@ -110,7 +110,7 @@ def validate_pfx_certificate(file_path: str, password: str) -> str:
 
     # Check expiry
     expiry = cert.not_valid_after_utc
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     if expiry < now:
         raise ValueError(f"Certificate expired on {expiry.strftime('%Y-%m-%d')}")
@@ -174,7 +174,7 @@ def get_certificate_info(file_path: str, password: str) -> dict:
         if len(parts) > 1:
             cnpj_cpf = parts[-1].strip()
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     expiry = cert.not_valid_after_utc
     not_before = cert.not_valid_before_utc
 
