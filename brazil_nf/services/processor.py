@@ -131,14 +131,22 @@ class NFProcessor:
         return {"status": status, "po_name": po_name, "message": message}
 
     def _create_invoice(self, nf_doc):
-        """Create Purchase Invoice."""
+        """Create or link Purchase Invoice."""
         from brazil_nf.services.invoice_creator import InvoiceCreator
 
         creator = InvoiceCreator()
-        submit = self.settings.invoice_submit_mode == "Auto Submit"
 
-        pi_name = creator.create_purchase_invoice(nf_doc, submit=submit)
-        return {"invoice": pi_name}
+        # First check if there's an existing invoice that matches
+        existing = creator.find_existing_invoice(nf_doc)
+        if existing:
+            creator.link_existing_invoice(nf_doc, existing)
+            frappe.logger().info(f"Linked existing Purchase Invoice {existing} to NF {nf_doc.name}")
+            return {"invoice": existing, "linked": True}
+
+        # Create new invoice
+        submit = self.settings.invoice_submit_mode == "Auto Submit"
+        pi_name = creator.create_purchase_invoice(nf_doc, submit=submit, check_existing=False)
+        return {"invoice": pi_name, "linked": False}
 
 
 def process_new_nf(doc, method=None):

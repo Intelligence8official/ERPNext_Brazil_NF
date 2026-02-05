@@ -160,6 +160,117 @@ def fetch_for_company(company_settings_name, document_type=None):
 
 
 @frappe.whitelist()
+def link_purchase_invoice(nota_fiscal_name, purchase_invoice_name):
+    """
+    Link a Nota Fiscal to an existing Purchase Invoice.
+
+    Args:
+        nota_fiscal_name: Name of the Nota Fiscal document
+        purchase_invoice_name: Name of the Purchase Invoice document
+
+    Returns:
+        dict: Result of the operation
+    """
+    nf_doc = frappe.get_doc("Nota Fiscal", nota_fiscal_name)
+
+    # Update Purchase Invoice with NF reference
+    frappe.db.set_value(
+        "Purchase Invoice",
+        purchase_invoice_name,
+        {
+            "nota_fiscal": nota_fiscal_name,
+            "chave_de_acesso": nf_doc.chave_de_acesso
+        },
+        update_modified=True
+    )
+
+    # Update Nota Fiscal
+    nf_doc.purchase_invoice = purchase_invoice_name
+    nf_doc.invoice_status = "Linked"
+    nf_doc.save()
+
+    return {"status": "success", "message": _("Purchase Invoice linked successfully")}
+
+
+@frappe.whitelist()
+def find_matching_documents(nota_fiscal_name):
+    """
+    Find existing Purchase Invoices and Purchase Orders that might match a Nota Fiscal.
+
+    Args:
+        nota_fiscal_name: Name of the Nota Fiscal document
+
+    Returns:
+        dict: Lists of matching invoices and orders
+    """
+    from frappe.utils import flt, add_days
+
+    nf_doc = frappe.get_doc("Nota Fiscal", nota_fiscal_name)
+
+    result = {
+        "invoices": [],
+        "orders": []
+    }
+
+    # Value tolerance: 5% or R$10, whichever is greater
+    value_tolerance = max(flt(nf_doc.valor_total or 0) * 0.05, 10)
+    min_value = flt(nf_doc.valor_total or 0) - value_tolerance
+    max_value = flt(nf_doc.valor_total or 0) + value_tolerance
+
+    # Date range: 30 days before and after
+    if nf_doc.data_emissao:
+        date_from = add_days(nf_doc.data_emissao, -30)
+        date_to = add_days(nf_doc.data_emissao, 30)
+    else:
+        date_from = None
+        date_to = None
+
+    # Build supplier filter
+    supplier_filter = ""
+    if nf_doc.supplier:
+        supplier_filter = f"AND supplier = '{nf_doc.supplier}'"
+
+    # Find matching Purchase Invoices
+    invoice_query = f"""
+        SELECT name, posting_date, grand_total, bill_no, supplier, nota_fiscal
+        FROM `tabPurchase Invoice`
+        WHERE docstatus < 2
+        {supplier_filter}
+        AND grand_total BETWEEN %(min_value)s AND %(max_value)s
+        {"AND posting_date BETWEEN %(date_from)s AND %(date_to)s" if date_from else ""}
+        ORDER BY ABS(grand_total - %(value)s) ASC
+        LIMIT 10
+    """
+
+    params = {
+        "min_value": min_value,
+        "max_value": max_value,
+        "value": nf_doc.valor_total or 0
+    }
+    if date_from:
+        params["date_from"] = date_from
+        params["date_to"] = date_to
+
+    result["invoices"] = frappe.db.sql(invoice_query, params, as_dict=True)
+
+    # Find matching Purchase Orders
+    order_query = f"""
+        SELECT name, transaction_date, grand_total, supplier, status
+        FROM `tabPurchase Order`
+        WHERE docstatus < 2
+        {supplier_filter}
+        AND grand_total BETWEEN %(min_value)s AND %(max_value)s
+        {"AND transaction_date BETWEEN %(date_from)s AND %(date_to)s" if date_from else ""}
+        ORDER BY ABS(grand_total - %(value)s) ASC
+        LIMIT 10
+    """
+
+    result["orders"] = frappe.db.sql(order_query, params, as_dict=True)
+
+    return result
+
+
+@frappe.whitelist()
 def batch_process(documents):
     """
     Process multiple Nota Fiscal documents in batch.

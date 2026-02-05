@@ -144,23 +144,18 @@ frappe.ui.form.on('Nota Fiscal', {
             }
 
             // Link to existing PO
-            frm.add_custom_button(__('Link to Purchase Order'), function() {
-                frappe.prompt({
-                    fieldname: 'purchase_order',
-                    fieldtype: 'Link',
-                    options: 'Purchase Order',
-                    label: __('Purchase Order'),
-                    reqd: 1,
-                    filters: {
-                        'supplier': frm.doc.supplier || '',
-                        'docstatus': ['<', 2]
-                    }
-                }, function(values) {
-                    frm.set_value('purchase_order', values.purchase_order);
-                    frm.set_value('po_status', 'Linked');
-                    frm.save();
-                }, __('Select Purchase Order'));
-            }, __('Links'));
+            if (!frm.doc.purchase_order) {
+                frm.add_custom_button(__('Link to Purchase Order'), function() {
+                    show_link_po_dialog(frm);
+                }, __('Link to Existing'));
+            }
+
+            // Link to existing Purchase Invoice
+            if (!frm.doc.purchase_invoice) {
+                frm.add_custom_button(__('Link to Purchase Invoice'), function() {
+                    show_link_invoice_dialog(frm);
+                }, __('Link to Existing'));
+            }
 
             // Link to existing Supplier
             if (!frm.doc.supplier) {
@@ -176,8 +171,13 @@ frappe.ui.form.on('Nota Fiscal', {
                         frm.set_value('supplier_status', 'Linked');
                         frm.save();
                     }, __('Select Supplier'));
-                }, __('Links'));
+                }, __('Link to Existing'));
             }
+
+            // Find matching documents button
+            frm.add_custom_button(__('Find Matching Documents'), function() {
+                find_matching_documents(frm);
+            }, __('Link to Existing'));
         }
 
         // Add status section using custom HTML to avoid duplication
@@ -292,4 +292,212 @@ function show_processing_stats(frm) {
 
     // Insert after the section break
     frm.fields_dict.identification_section.$wrapper.prepend(stats_html);
+}
+
+function show_link_po_dialog(frm) {
+    const dialog = new frappe.ui.Dialog({
+        title: __('Link to Purchase Order'),
+        fields: [
+            {
+                fieldname: 'info',
+                fieldtype: 'HTML',
+                options: `<p>${__('Select a Purchase Order to link with this Nota Fiscal.')}</p>
+                    <p><strong>${__('NF Value')}:</strong> R$ ${(frm.doc.valor_total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
+                    <p><strong>${__('Supplier')}:</strong> ${frm.doc.emitente_razao_social || frm.doc.supplier || '-'}</p>`
+            },
+            {
+                fieldname: 'purchase_order',
+                fieldtype: 'Link',
+                options: 'Purchase Order',
+                label: __('Purchase Order'),
+                reqd: 1,
+                get_query: function() {
+                    return {
+                        filters: {
+                            'supplier': frm.doc.supplier || ['is', 'set'],
+                            'docstatus': ['<', 2],
+                            'status': ['not in', ['Closed', 'Cancelled']]
+                        }
+                    };
+                }
+            }
+        ],
+        primary_action_label: __('Link'),
+        primary_action: function(values) {
+            frm.set_value('purchase_order', values.purchase_order);
+            frm.set_value('po_status', 'Linked');
+            frm.save().then(() => {
+                dialog.hide();
+                frappe.show_alert({
+                    message: __('Purchase Order linked successfully'),
+                    indicator: 'green'
+                });
+            });
+        }
+    });
+    dialog.show();
+}
+
+function show_link_invoice_dialog(frm) {
+    const dialog = new frappe.ui.Dialog({
+        title: __('Link to Purchase Invoice'),
+        fields: [
+            {
+                fieldname: 'info',
+                fieldtype: 'HTML',
+                options: `<p>${__('Select a Purchase Invoice to link with this Nota Fiscal.')}</p>
+                    <p><strong>${__('NF Number')}:</strong> ${frm.doc.numero || '-'}</p>
+                    <p><strong>${__('NF Value')}:</strong> R$ ${(frm.doc.valor_total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
+                    <p><strong>${__('Supplier')}:</strong> ${frm.doc.emitente_razao_social || frm.doc.supplier || '-'}</p>`
+            },
+            {
+                fieldname: 'purchase_invoice',
+                fieldtype: 'Link',
+                options: 'Purchase Invoice',
+                label: __('Purchase Invoice'),
+                reqd: 1,
+                get_query: function() {
+                    return {
+                        filters: {
+                            'supplier': frm.doc.supplier || ['is', 'set'],
+                            'docstatus': ['<', 2]
+                        }
+                    };
+                }
+            }
+        ],
+        primary_action_label: __('Link'),
+        primary_action: function(values) {
+            frappe.call({
+                method: 'brazil_nf.api.link_purchase_invoice',
+                args: {
+                    nota_fiscal_name: frm.doc.name,
+                    purchase_invoice_name: values.purchase_invoice
+                },
+                freeze: true,
+                freeze_message: __('Linking...'),
+                callback: function(r) {
+                    if (r.message && r.message.status === 'success') {
+                        dialog.hide();
+                        frm.reload_doc();
+                        frappe.show_alert({
+                            message: __('Purchase Invoice linked successfully'),
+                            indicator: 'green'
+                        });
+                    }
+                }
+            });
+        }
+    });
+    dialog.show();
+}
+
+function find_matching_documents(frm) {
+    frappe.call({
+        method: 'brazil_nf.api.find_matching_documents',
+        args: {
+            nota_fiscal_name: frm.doc.name
+        },
+        freeze: true,
+        freeze_message: __('Searching for matching documents...'),
+        callback: function(r) {
+            if (r.message) {
+                show_matching_documents_dialog(frm, r.message);
+            }
+        }
+    });
+}
+
+function show_matching_documents_dialog(frm, matches) {
+    let html = '<div class="matching-documents">';
+
+    // Purchase Invoices
+    html += `<h5>${__('Purchase Invoices')}</h5>`;
+    if (matches.invoices && matches.invoices.length > 0) {
+        html += '<table class="table table-bordered table-sm"><thead><tr>';
+        html += `<th>${__('Invoice')}</th><th>${__('Date')}</th><th>${__('Value')}</th><th>${__('Bill No')}</th><th></th>`;
+        html += '</tr></thead><tbody>';
+        matches.invoices.forEach(inv => {
+            html += `<tr>
+                <td><a href="/app/purchase-invoice/${inv.name}" target="_blank">${inv.name}</a></td>
+                <td>${inv.posting_date || '-'}</td>
+                <td>R$ ${(inv.grand_total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                <td>${inv.bill_no || '-'}</td>
+                <td><button class="btn btn-xs btn-primary link-invoice" data-invoice="${inv.name}">${__('Link')}</button></td>
+            </tr>`;
+        });
+        html += '</tbody></table>';
+    } else {
+        html += `<p class="text-muted">${__('No matching Purchase Invoices found')}</p>`;
+    }
+
+    // Purchase Orders
+    html += `<h5 style="margin-top: 15px;">${__('Purchase Orders')}</h5>`;
+    if (matches.orders && matches.orders.length > 0) {
+        html += '<table class="table table-bordered table-sm"><thead><tr>';
+        html += `<th>${__('Order')}</th><th>${__('Date')}</th><th>${__('Value')}</th><th>${__('Status')}</th><th></th>`;
+        html += '</tr></thead><tbody>';
+        matches.orders.forEach(po => {
+            html += `<tr>
+                <td><a href="/app/purchase-order/${po.name}" target="_blank">${po.name}</a></td>
+                <td>${po.transaction_date || '-'}</td>
+                <td>R$ ${(po.grand_total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                <td>${po.status || '-'}</td>
+                <td><button class="btn btn-xs btn-primary link-po" data-po="${po.name}">${__('Link')}</button></td>
+            </tr>`;
+        });
+        html += '</tbody></table>';
+    } else {
+        html += `<p class="text-muted">${__('No matching Purchase Orders found')}</p>`;
+    }
+
+    html += '</div>';
+
+    const dialog = new frappe.ui.Dialog({
+        title: __('Matching Documents Found'),
+        fields: [
+            {
+                fieldname: 'matches_html',
+                fieldtype: 'HTML',
+                options: html
+            }
+        ]
+    });
+
+    dialog.show();
+
+    // Handle link button clicks
+    dialog.$wrapper.find('.link-invoice').on('click', function() {
+        const invoice_name = $(this).data('invoice');
+        frappe.call({
+            method: 'brazil_nf.api.link_purchase_invoice',
+            args: {
+                nota_fiscal_name: frm.doc.name,
+                purchase_invoice_name: invoice_name
+            },
+            callback: function(r) {
+                if (r.message && r.message.status === 'success') {
+                    dialog.hide();
+                    frm.reload_doc();
+                    frappe.show_alert({
+                        message: __('Purchase Invoice linked successfully'),
+                        indicator: 'green'
+                    });
+                }
+            }
+        });
+    });
+
+    dialog.$wrapper.find('.link-po').on('click', function() {
+        const po_name = $(this).data('po');
+        frm.set_value('purchase_order', po_name);
+        frm.set_value('po_status', 'Linked');
+        frm.save().then(() => {
+            dialog.hide();
+            frappe.show_alert({
+                message: __('Purchase Order linked successfully'),
+                indicator: 'green'
+            });
+        });
+    });
 }
