@@ -274,67 +274,38 @@ function get_status_color(status) {
 }
 
 function show_processing_stats(frm) {
-    // Remove previous stats section if exists
-    frm.fields_dict.identification_section.$wrapper.find('.nf-stats-section').remove();
+    // Use dashboard for stats to avoid issues with field wrappers
+    // Clear any existing custom stats
+    frm.dashboard.stats_area_row && frm.dashboard.stats_area_row.empty();
 
-    // Build stats HTML
-    let stats_html = `
-        <div class="nf-stats-section" style="margin-bottom: 15px; padding: 10px; background: var(--bg-light-gray); border-radius: 4px;">
-            <div style="font-weight: 500; margin-bottom: 8px;">${__('Processing Status')}</div>
-            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-    `;
-
-    // Supplier status
+    // Add stats using dashboard indicators
     if (frm.doc.supplier_status) {
-        stats_html += `
-            <div>
-                <span class="indicator-pill ${get_status_color(frm.doc.supplier_status)}">
-                    ${__('Supplier')}: ${__(frm.doc.supplier_status)}
-                </span>
-            </div>
-        `;
+        frm.dashboard.add_indicator(
+            __('Supplier: {0}', [__(frm.doc.supplier_status)]),
+            get_status_color(frm.doc.supplier_status)
+        );
     }
 
-    // Items status
     if (frm.doc.item_creation_status) {
-        stats_html += `
-            <div>
-                <span class="indicator-pill ${get_status_color(frm.doc.item_creation_status)}">
-                    ${__('Items')}: ${__(frm.doc.item_creation_status)}
-                </span>
-            </div>
-        `;
+        frm.dashboard.add_indicator(
+            __('Items: {0}', [__(frm.doc.item_creation_status)]),
+            get_status_color(frm.doc.item_creation_status)
+        );
     }
 
-    // PO status
     if (frm.doc.po_status) {
-        stats_html += `
-            <div>
-                <span class="indicator-pill ${get_status_color(frm.doc.po_status)}">
-                    ${__('PO')}: ${__(frm.doc.po_status)}
-                </span>
-            </div>
-        `;
+        frm.dashboard.add_indicator(
+            __('PO: {0}', [__(frm.doc.po_status)]),
+            get_status_color(frm.doc.po_status)
+        );
     }
 
-    // Invoice status
     if (frm.doc.invoice_status && frm.doc.invoice_status !== 'Pending') {
-        stats_html += `
-            <div>
-                <span class="indicator-pill ${get_status_color(frm.doc.invoice_status)}">
-                    ${__('Invoice')}: ${__(frm.doc.invoice_status)}
-                </span>
-            </div>
-        `;
+        frm.dashboard.add_indicator(
+            __('Invoice: {0}', [__(frm.doc.invoice_status)]),
+            get_status_color(frm.doc.invoice_status)
+        );
     }
-
-    stats_html += `
-            </div>
-        </div>
-    `;
-
-    // Insert after the section break
-    frm.fields_dict.identification_section.$wrapper.prepend(stats_html);
 }
 
 function show_link_po_dialog(frm) {

@@ -72,6 +72,13 @@ def create_custom_fields():
                 "insert_after": "cest_code",
                 "options": "\n0 - Nacional\n1 - Estrangeira - Importacao Direta\n2 - Estrangeira - Adquirida no Mercado Interno\n3 - Nacional com mais de 40% conteudo importado\n4 - Nacional conforme processos produtivos\n5 - Nacional com conteudo importado inferior a 40%\n6 - Estrangeira sem similar nacional\n7 - Estrangeira com similar nacional\n8 - Nacional com conteudo importado superior a 70%",
                 "description": "Origin code for ICMS calculation"
+            },
+            {
+                "fieldname": "custom_codigo_servico",
+                "fieldtype": "Data",
+                "label": "Service Code (cTribNac)",
+                "insert_after": "origem_mercadoria",
+                "description": "National Service Code for NFS-e (6 digits)"
             }
         ],
         "Purchase Invoice": [
