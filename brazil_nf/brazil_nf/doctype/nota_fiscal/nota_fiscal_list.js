@@ -77,7 +77,8 @@ frappe.listview_settings['Nota Fiscal'] = {
             const colors = {
                 'NF-e': 'blue',
                 'CT-e': 'purple',
-                'NFS-e': 'cyan'
+                'NFS-e': 'cyan',
+                'Invoice': 'green'
             };
             const color = colors[value] || 'gray';
             return `<span class="indicator-pill ${color}">${value}</span>`;

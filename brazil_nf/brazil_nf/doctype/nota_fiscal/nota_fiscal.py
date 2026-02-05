@@ -18,8 +18,20 @@ class NotaFiscal(Document):
 
     def validate(self):
         """Validate document before save."""
-        self.validate_chave_de_acesso()
-        self.validate_cnpj()
+        # Skip Brazilian validations for international invoices
+        if self.document_type == "Invoice":
+            self.validate_invoice()
+        else:
+            self.validate_chave_de_acesso()
+            self.validate_cnpj()
+
+    def validate_invoice(self):
+        """Validate international invoice fields."""
+        if not self.invoice_number and not self.vendor_name:
+            frappe.throw(
+                _("International Invoice requires at least Invoice Number or Vendor Name."),
+                title=_("Validation Error")
+            )
 
     def validate_chave_de_acesso(self):
         """Validate the access key format and check digit."""

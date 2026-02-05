@@ -19,14 +19,23 @@ class InvoiceCreator:
         """
         Find an existing Purchase Invoice that might match this NF.
 
-        Checks by:
-        1. Chave de acesso (exact match)
-        2. Bill number + supplier (exact match)
-        3. Supplier + value + date range (fuzzy match)
+        For Brazilian NF (NF-e, CT-e, NFS-e):
+            1. Chave de acesso (exact match)
+            2. Bill number + supplier (exact match)
+            3. Supplier + value + date range (fuzzy match)
+
+        For International Invoice:
+            1. Invoice number + supplier (exact match)
+            2. Supplier + value + date range (fuzzy match)
 
         Returns:
             str: Purchase Invoice name or None
         """
+        # Handle international invoices differently
+        if nf_doc.document_type == "Invoice":
+            return self._find_existing_invoice_for_intl(nf_doc)
+
+        # Brazilian NF processing
         # 1. Check by chave_de_acesso in custom field
         if nf_doc.chave_de_acesso:
             existing = frappe.db.get_value(
@@ -83,6 +92,64 @@ class InvoiceCreator:
 
             if candidates:
                 # Return the closest match
+                return candidates[0].name
+
+        return None
+
+    def _find_existing_invoice_for_intl(self, nf_doc):
+        """
+        Find existing Purchase Invoice for international invoice.
+
+        Args:
+            nf_doc: Nota Fiscal document (Invoice type)
+
+        Returns:
+            str: Purchase Invoice name or None
+        """
+        # 1. Check by bill_no (invoice number) + supplier
+        if nf_doc.invoice_number and nf_doc.supplier:
+            existing = frappe.db.get_value(
+                "Purchase Invoice",
+                {
+                    "bill_no": nf_doc.invoice_number,
+                    "supplier": nf_doc.supplier,
+                    "docstatus": ["<", 2]
+                },
+                "name"
+            )
+            if existing:
+                return existing
+
+        # 2. Fuzzy match: supplier + similar value + date range
+        if nf_doc.supplier and nf_doc.valor_total and nf_doc.data_emissao:
+            date_from = add_days(nf_doc.data_emissao, -5)
+            date_to = add_days(nf_doc.data_emissao, 5)
+
+            # Value tolerance for international (may have exchange rate variations)
+            value_tolerance = max(flt(nf_doc.valor_total) * 0.05, 5)
+            min_value = flt(nf_doc.valor_total) - value_tolerance
+            max_value = flt(nf_doc.valor_total) + value_tolerance
+
+            candidates = frappe.db.sql("""
+                SELECT name, grand_total, posting_date, bill_no
+                FROM `tabPurchase Invoice`
+                WHERE supplier = %(supplier)s
+                AND docstatus < 2
+                AND posting_date BETWEEN %(date_from)s AND %(date_to)s
+                AND grand_total BETWEEN %(min_value)s AND %(max_value)s
+                AND (nota_fiscal IS NULL OR nota_fiscal = '')
+                ORDER BY ABS(grand_total - %(value)s) ASC
+                LIMIT 5
+            """, {
+                "supplier": nf_doc.supplier,
+                "date_from": date_from,
+                "date_to": date_to,
+                "min_value": min_value,
+                "max_value": max_value,
+                "value": nf_doc.valor_total
+            }, as_dict=True)
+
+            if candidates:
                 return candidates[0].name
 
         return None
@@ -146,6 +213,11 @@ class InvoiceCreator:
         invoice.supplier = nf_doc.supplier
         invoice.company = nf_doc.company
 
+        # Handle international invoices differently
+        if nf_doc.document_type == "Invoice":
+            return self._create_invoice_from_intl(invoice, nf_doc, submit)
+
+        # Brazilian NF processing
         # Set dates
         invoice.posting_date = nf_doc.data_emissao or frappe.utils.today()
         invoice.bill_no = nf_doc.numero
@@ -181,6 +253,83 @@ class InvoiceCreator:
         nf_doc.save(ignore_permissions=True)
 
         return invoice.name
+
+    def _create_invoice_from_intl(self, invoice, nf_doc, submit=False):
+        """
+        Create Purchase Invoice from international invoice.
+
+        Args:
+            invoice: Purchase Invoice document (new)
+            nf_doc: Nota Fiscal document (Invoice type)
+            submit: Whether to submit
+
+        Returns:
+            str: Invoice name
+        """
+        # Set dates
+        invoice.posting_date = nf_doc.data_emissao or frappe.utils.today()
+        invoice.bill_no = nf_doc.invoice_number
+        invoice.bill_date = nf_doc.data_emissao
+
+        # Set currency if different from company currency
+        if nf_doc.currency and nf_doc.currency != "BRL":
+            invoice.currency = nf_doc.currency
+            if nf_doc.exchange_rate:
+                invoice.conversion_rate = nf_doc.exchange_rate
+
+        # Set custom fields
+        if hasattr(invoice, "nota_fiscal"):
+            invoice.nota_fiscal = nf_doc.name
+
+        # Add single service item for international invoice
+        self._add_intl_invoice_item(invoice, nf_doc)
+
+        invoice.insert(ignore_permissions=True)
+
+        # Update NF document
+        nf_doc.purchase_invoice = invoice.name
+        nf_doc.invoice_status = "Created"
+
+        if submit:
+            invoice.submit()
+            nf_doc.invoice_status = "Submitted"
+
+        nf_doc.save(ignore_permissions=True)
+
+        return invoice.name
+
+    def _add_intl_invoice_item(self, invoice, nf_doc):
+        """
+        Add item for international invoice.
+
+        International invoices typically have one service line item.
+        """
+        from brazil_nf.services.item_manager import get_or_create_service_item
+
+        # Try to get or create a service item
+        service_item = get_or_create_service_item(nf_doc, self.settings)
+
+        if service_item:
+            description = nf_doc.invoice_description or f"{nf_doc.vendor_name} - Invoice #{nf_doc.invoice_number}"
+
+            # Add billing period to description if available
+            if nf_doc.billing_period_start and nf_doc.billing_period_end:
+                description += f" ({nf_doc.billing_period_start} to {nf_doc.billing_period_end})"
+
+            invoice.append("items", {
+                "item_code": service_item,
+                "item_name": nf_doc.invoice_description or f"Invoice {nf_doc.invoice_number}",
+                "description": description,
+                "qty": 1,
+                "rate": nf_doc.valor_original_currency or nf_doc.valor_total or 0,
+                "uom": "Unit"
+            })
+        else:
+            frappe.throw(
+                _("Cannot create Purchase Invoice: No service item could be created. "
+                  "Please enable 'Auto-Create Items' in Nota Fiscal Settings."),
+                title=_("Item Required")
+            )
 
     def _add_items_from_po(self, invoice, nf_doc):
         """

@@ -205,8 +205,9 @@ def process_pdf_attachment(attachment, comm, settings):
     Process a PDF attachment.
 
     Tries to:
-    1. Extract embedded XML from PDF
-    2. Extract text and parse NF data (chave de acesso, etc.)
+    1. Extract embedded XML from PDF (Brazilian NF)
+    2. Extract text and parse NF data - chave de acesso (Brazilian NF)
+    3. Parse as international invoice if not Brazilian
 
     Args:
         attachment: File document data
@@ -222,7 +223,7 @@ def process_pdf_attachment(attachment, comm, settings):
 
     nf_count = 0
 
-    # Try to extract embedded XML first
+    # Try to extract embedded XML first (Brazilian NF)
     xml_contents = extract_xml_from_pdf(file_content)
     if xml_contents:
         for xml_content in xml_contents:
@@ -233,7 +234,15 @@ def process_pdf_attachment(attachment, comm, settings):
     if nf_count == 0:
         pdf_data = extract_data_from_pdf(file_content)
         if pdf_data and pdf_data.get("chave_de_acesso"):
+            # Brazilian NF from PDF text
             if create_nf_from_pdf_data(pdf_data, file_content, attachment, comm, settings):
+                nf_count += 1
+
+    # If still no match, try to parse as international invoice
+    if nf_count == 0:
+        invoice_data = extract_international_invoice(file_content)
+        if invoice_data:
+            if create_nf_from_invoice_data(invoice_data, file_content, attachment, comm, settings):
                 nf_count += 1
 
     return nf_count
@@ -709,3 +718,130 @@ def save_pdf_as_attachment(nf_name, pdf_content, file_name):
         )
     except Exception as e:
         frappe.log_error(f"Error saving PDF attachment: {str(e)}")
+
+
+def extract_international_invoice(pdf_content):
+    """
+    Extract international invoice data from PDF.
+
+    Args:
+        pdf_content: PDF file content as bytes
+
+    Returns:
+        dict: Extracted invoice data or None
+    """
+    try:
+        from brazil_nf.services.invoice_parser import parse_invoice_pdf, is_international_invoice
+
+        # First check if the text looks like international invoice
+        try:
+            from pypdf import PdfReader
+        except ImportError:
+            try:
+                from PyPDF2 import PdfReader
+            except ImportError:
+                return None
+
+        from io import BytesIO
+        reader = PdfReader(BytesIO(pdf_content))
+        text = ""
+        for page in reader.pages:
+            page_text = page.extract_text()
+            if page_text:
+                text += page_text + "\n"
+
+        if not is_international_invoice(text):
+            return None
+
+        # Parse as international invoice
+        return parse_invoice_pdf(pdf_content)
+
+    except Exception as e:
+        frappe.logger().error(f"Error extracting international invoice: {str(e)}")
+        return None
+
+
+def create_nf_from_invoice_data(invoice_data, pdf_content, attachment, comm, settings):
+    """
+    Create Nota Fiscal from international invoice data.
+
+    Args:
+        invoice_data: Extracted invoice data dict
+        pdf_content: Original PDF content
+        attachment: File attachment info
+        comm: Communication document
+        settings: Nota Fiscal Settings
+
+    Returns:
+        bool: True if created/updated
+    """
+    invoice_number = invoice_data.get("invoice_number")
+    vendor_name = invoice_data.get("vendor_name")
+
+    # Check for duplicates by invoice_number + vendor_name
+    if invoice_number and vendor_name:
+        existing = frappe.db.exists(
+            "Nota Fiscal",
+            {
+                "document_type": "Invoice",
+                "invoice_number": invoice_number,
+                "vendor_name": vendor_name
+            }
+        )
+
+        if existing:
+            # Update origin flags and attach PDF
+            nf_doc = frappe.get_doc("Nota Fiscal", existing)
+            nf_doc.origin_email = 1
+            nf_doc.email_reference = comm.name
+            nf_doc.save(ignore_permissions=True)
+            return True
+
+    # Create new Nota Fiscal for international invoice
+    nf_doc = frappe.new_doc("Nota Fiscal")
+    nf_doc.company = settings.default_company
+    nf_doc.document_type = "Invoice"
+    nf_doc.naming_series = "INV-.#####"
+
+    # Set origin
+    nf_doc.origin_email = 1
+    nf_doc.email_reference = comm.name
+
+    # Set invoice-specific fields
+    nf_doc.invoice_number = invoice_data.get("invoice_number")
+    nf_doc.vendor_name = invoice_data.get("vendor_name")
+    nf_doc.vendor_country = invoice_data.get("vendor_country")
+    nf_doc.vendor_tax_id = invoice_data.get("vendor_tax_id")
+    nf_doc.vendor_email = invoice_data.get("vendor_email")
+
+    # Currency and values
+    nf_doc.currency = invoice_data.get("currency", "USD")
+    nf_doc.valor_original_currency = invoice_data.get("valor_original_currency")
+    nf_doc.valor_total = invoice_data.get("valor_total")
+
+    # Dates
+    nf_doc.data_emissao = invoice_data.get("data_emissao")
+    nf_doc.billing_period_start = invoice_data.get("billing_period_start")
+    nf_doc.billing_period_end = invoice_data.get("billing_period_end")
+
+    # Description
+    nf_doc.invoice_description = invoice_data.get("invoice_description")
+
+    # Set numero field from invoice_number for consistency
+    nf_doc.numero = invoice_data.get("invoice_number")
+
+    # Mark status
+    nf_doc.processing_status = "Parsed"
+
+    try:
+        nf_doc.insert(ignore_permissions=True)
+
+        # Attach PDF
+        save_pdf_as_attachment(nf_doc.name, pdf_content, attachment["file_name"])
+
+        frappe.logger().info(f"Created international invoice: {nf_doc.name} - {vendor_name} #{invoice_number}")
+        return True
+
+    except Exception as e:
+        frappe.log_error(f"Error creating invoice: {str(e)}", "Invoice Creation Error")
+        return False

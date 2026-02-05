@@ -235,6 +235,8 @@ frappe.ui.form.on('Nota Fiscal', {
             frm.set_value('naming_series', 'CTE-.#####');
         } else if (frm.doc.document_type === 'NFS-e') {
             frm.set_value('naming_series', 'NFSE-.#####');
+        } else if (frm.doc.document_type === 'Invoice') {
+            frm.set_value('naming_series', 'INV-.#####');
         }
     },
 

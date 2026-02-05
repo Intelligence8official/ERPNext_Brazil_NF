@@ -326,7 +326,7 @@ class ItemManager:
 
 def get_or_create_service_item(nf_doc, settings):
     """
-    Get or create a generic service item for NFS-e invoices.
+    Get or create a service item for NFS-e invoices or international invoices.
 
     This is used when no specific item can be matched.
 
@@ -337,6 +337,10 @@ def get_or_create_service_item(nf_doc, settings):
     Returns:
         str: Item code
     """
+    # For international invoices, try to get/create vendor-specific service item
+    if nf_doc.document_type == "Invoice":
+        return _get_or_create_international_service_item(nf_doc, settings)
+
     # Look for a generic service item first
     generic_service = frappe.get_all(
         "Item",
@@ -407,6 +411,103 @@ def get_or_create_service_item(nf_doc, settings):
 
         item.stock_uom = "Unit"
         item.insert(ignore_permissions=True)
+
+        return item.name
+
+    return None
+
+
+def _get_or_create_international_service_item(nf_doc, settings):
+    """
+    Get or create a service item for international invoices.
+
+    Creates vendor-specific service items like "GitHub Services", "AWS Services", etc.
+
+    Args:
+        nf_doc: Nota Fiscal document (Invoice type)
+        settings: Nota Fiscal Settings
+
+    Returns:
+        str: Item code
+    """
+    vendor_name = nf_doc.vendor_name or "International"
+
+    # Create a clean item code from vendor name
+    import re
+    vendor_slug = re.sub(r'[^a-zA-Z0-9]', '', vendor_name.upper())[:20]
+    item_code = f"SVC-{vendor_slug}"
+
+    # Check if already exists
+    if frappe.db.exists("Item", item_code):
+        return item_code
+
+    # Try to find from invoice history with same supplier
+    if nf_doc.supplier:
+        invoices = frappe.get_all(
+            "Purchase Invoice",
+            filters={
+                "supplier": nf_doc.supplier,
+                "docstatus": ["in", [0, 1]]
+            },
+            pluck="name",
+            limit=5,
+            order_by="creation desc"
+        )
+
+        for inv_name in invoices:
+            items = frappe.get_all(
+                "Purchase Invoice Item",
+                filters={"parent": inv_name, "item_code": ["is", "set"]},
+                pluck="item_code",
+                limit=1
+            )
+            if items:
+                return items[0]
+
+    # Create vendor-specific service item if auto_create is enabled
+    if settings.auto_create_item:
+        item = frappe.new_doc("Item")
+        item.item_code = item_code
+        item.item_name = f"{vendor_name} Services"
+        item.description = f"Services from {vendor_name}"
+        item.is_stock_item = 0
+        item.include_item_in_manufacturing = 0
+
+        if settings.item_group:
+            item.item_group = settings.item_group
+        else:
+            # Try to find a services group
+            service_groups = frappe.get_all(
+                "Item Group",
+                filters={"name": ["like", "%servi%"]},
+                pluck="name",
+                limit=1
+            )
+            item.item_group = service_groups[0] if service_groups else "All Item Groups"
+
+        # Set default expense account
+        if nf_doc.company:
+            default_expense = frappe.db.get_value(
+                "Company",
+                nf_doc.company,
+                "default_expense_account"
+            )
+            if default_expense:
+                item.append("item_defaults", {
+                    "company": nf_doc.company,
+                    "expense_account": default_expense
+                })
+
+        item.stock_uom = "Unit"
+        item.insert(ignore_permissions=True)
+
+        # Add to Item Supplier if we have supplier
+        if nf_doc.supplier:
+            item.append("supplier_items", {
+                "supplier": nf_doc.supplier,
+                "supplier_part_no": item_code
+            })
+            item.save(ignore_permissions=True)
 
         return item.name
 
