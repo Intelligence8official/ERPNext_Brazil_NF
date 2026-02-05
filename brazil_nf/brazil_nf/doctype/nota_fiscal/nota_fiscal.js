@@ -178,6 +178,49 @@ frappe.ui.form.on('Nota Fiscal', {
             frm.add_custom_button(__('Find Matching Documents'), function() {
                 find_matching_documents(frm);
             }, __('Link to Existing'));
+
+            // Unlink Purchase Invoice
+            if (frm.doc.purchase_invoice) {
+                frm.add_custom_button(__('Unlink Purchase Invoice'), function() {
+                    frappe.confirm(
+                        __('Are you sure you want to unlink Purchase Invoice {0} from this Nota Fiscal?', [frm.doc.purchase_invoice]),
+                        function() {
+                            unlink_purchase_invoice(frm);
+                        }
+                    );
+                }, __('Unlink'));
+            }
+
+            // Unlink Purchase Order
+            if (frm.doc.purchase_order) {
+                frm.add_custom_button(__('Unlink Purchase Order'), function() {
+                    frappe.confirm(
+                        __('Are you sure you want to unlink Purchase Order {0} from this Nota Fiscal?', [frm.doc.purchase_order]),
+                        function() {
+                            unlink_purchase_order(frm);
+                        }
+                    );
+                }, __('Unlink'));
+            }
+
+            // Unlink Supplier
+            if (frm.doc.supplier) {
+                frm.add_custom_button(__('Unlink Supplier'), function() {
+                    frappe.confirm(
+                        __('Are you sure you want to unlink Supplier {0} from this Nota Fiscal?', [frm.doc.supplier]),
+                        function() {
+                            frm.set_value('supplier', null);
+                            frm.set_value('supplier_status', 'Pending');
+                            frm.save().then(() => {
+                                frappe.show_alert({
+                                    message: __('Supplier unlinked successfully'),
+                                    indicator: 'green'
+                                });
+                            });
+                        }
+                    );
+                }, __('Unlink'));
+            }
         }
 
         // Add status section using custom HTML to avoid duplication
@@ -498,6 +541,37 @@ function show_matching_documents_dialog(frm, matches) {
                 message: __('Purchase Order linked successfully'),
                 indicator: 'green'
             });
+        });
+    });
+}
+
+function unlink_purchase_invoice(frm) {
+    frappe.call({
+        method: 'brazil_nf.api.unlink_purchase_invoice',
+        args: {
+            nota_fiscal_name: frm.doc.name
+        },
+        freeze: true,
+        freeze_message: __('Unlinking...'),
+        callback: function(r) {
+            if (r.message && r.message.status === 'success') {
+                frm.reload_doc();
+                frappe.show_alert({
+                    message: __('Purchase Invoice unlinked successfully. You can now delete it if needed.'),
+                    indicator: 'green'
+                });
+            }
+        }
+    });
+}
+
+function unlink_purchase_order(frm) {
+    frm.set_value('purchase_order', null);
+    frm.set_value('po_status', 'Pending');
+    frm.save().then(() => {
+        frappe.show_alert({
+            message: __('Purchase Order unlinked successfully'),
+            indicator: 'green'
         });
     });
 }

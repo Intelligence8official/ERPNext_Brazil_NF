@@ -160,6 +160,46 @@ def fetch_for_company(company_settings_name, document_type=None):
 
 
 @frappe.whitelist()
+def unlink_purchase_invoice(nota_fiscal_name):
+    """
+    Unlink a Purchase Invoice from a Nota Fiscal.
+
+    Args:
+        nota_fiscal_name: Name of the Nota Fiscal document
+
+    Returns:
+        dict: Result of the operation
+    """
+    nf_doc = frappe.get_doc("Nota Fiscal", nota_fiscal_name)
+
+    if not nf_doc.purchase_invoice:
+        return {"status": "error", "message": _("No Purchase Invoice linked")}
+
+    purchase_invoice_name = nf_doc.purchase_invoice
+
+    # Clear the reference in Purchase Invoice
+    frappe.db.set_value(
+        "Purchase Invoice",
+        purchase_invoice_name,
+        {
+            "nota_fiscal": None,
+            "chave_de_acesso": None
+        },
+        update_modified=True
+    )
+
+    # Clear the reference in Nota Fiscal
+    nf_doc.purchase_invoice = None
+    nf_doc.invoice_status = "Pending"
+    nf_doc.save()
+
+    return {
+        "status": "success",
+        "message": _("Purchase Invoice {0} unlinked successfully").format(purchase_invoice_name)
+    }
+
+
+@frappe.whitelist()
 def link_purchase_invoice(nota_fiscal_name, purchase_invoice_name):
     """
     Link a Nota Fiscal to an existing Purchase Invoice.
