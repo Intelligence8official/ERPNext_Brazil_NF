@@ -213,13 +213,17 @@
    "fieldname": "origin_sefaz",
    "fieldtype": "Check",
    "label": "Received from SEFAZ",
-   "read_only": 1
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "columns": 1
   },
   {
    "fieldname": "origin_email",
    "fieldtype": "Check",
    "label": "Received from Email",
-   "read_only": 1
+   "read_only": 1,
+   "in_standard_filter": 1
   },
   {
    "fieldname": "column_break_origin",

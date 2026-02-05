@@ -278,6 +278,21 @@ function show_processing_stats(frm) {
     // Clear any existing custom stats
     frm.dashboard.stats_area_row && frm.dashboard.stats_area_row.empty();
 
+    // Show origin indicators first
+    let origins = [];
+    if (frm.doc.origin_sefaz) {
+        origins.push('SEFAZ');
+    }
+    if (frm.doc.origin_email) {
+        origins.push('Email');
+    }
+    if (origins.length > 0) {
+        frm.dashboard.add_indicator(
+            __('Origin: {0}', [origins.join(' + ')]),
+            origins.length > 1 ? 'purple' : (frm.doc.origin_sefaz ? 'blue' : 'orange')
+        );
+    }
+
     // Add stats using dashboard indicators
     if (frm.doc.supplier_status) {
         frm.dashboard.add_indicator(

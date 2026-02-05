@@ -9,7 +9,9 @@ frappe.listview_settings['Nota Fiscal'] = {
         'po_status',
         'invoice_status',
         'document_type',
-        'cancelada'
+        'cancelada',
+        'origin_sefaz',
+        'origin_email'
     ],
 
     get_indicator: function(doc) {
@@ -97,6 +99,19 @@ frappe.listview_settings['Nota Fiscal'] = {
         valor_total: function(value, df, doc) {
             if (!value) return '';
             return format_currency(value, 'BRL');
+        },
+
+        // Origin display - shows where the NF was captured from
+        origin_sefaz: function(value, df, doc) {
+            // Show combined origin badges
+            let origins = [];
+            if (doc.origin_sefaz) {
+                origins.push('<span class="indicator-pill blue" title="SEFAZ API">API</span>');
+            }
+            if (doc.origin_email) {
+                origins.push('<span class="indicator-pill orange" title="Email">Email</span>');
+            }
+            return origins.join(' ') || '<span class="text-muted">-</span>';
         }
     },
 
